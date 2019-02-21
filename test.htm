@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+ <head>
+    <meta charset=utf-8>
+    <meta name="viewport" content="width=device-width" />
+    <style>body { background-color: #ddd; } object, svg { background-color: white; } svg {opacity: 0.8;}</style>
+ </head>
+ <body>
+  <script src="js/jquery.min.js"></script>
+  <script src="js/colors.js"></script>
+  <script src="js/geometry.js"></script>
+  <script src="js/height_map.js"></script>
+  <script src="js/pattern_folder.js"></script>
+
+  <h3>LDraw File to Fold</h3>
+  <pre id="ldr_original"></pre>
+  <div id="svg_original"></div>
+
+  <h3>Folded</h3>
+  <pre id="ldr_result"></pre>
+  <div id="svg_result"></div>
+  <script>
+function onWarning(w, e) {
+  console.warn(w);
+  console.warn(e);
+}
+function onError(e) {
+  console.warn('Error: ' + e);
+}
+
+function fold() {
+  var ldr = $('#ldr_original')[0].innerHTML;
+  var [paths,header] = UTIL.ldr2Paths(ldr, onWarning);
+  var svg = UTIL.paths2Svg(paths);
+  document.getElementById('svg_original').innerHTML = svg;
+
+  var heightPoints = [
+    new UTIL.Point(-100, -100, 0),
+    new UTIL.Point(-40, -30, 0),
+    new UTIL.Point(0,0,0),
+    new UTIL.Point(40, 30, 0),
+    new UTIL.Point(100, 100, 0)
+  ];
+  var mapper = new LDR.LinearHeightMap(heightPoints);
+  paths = mapper.foldPaths(paths);
+
+  // LDraw SVG:
+  svg = UTIL.paths2Svg(paths);
+  console.log(svg);
+  document.getElementById('svg_result').innerHTML = svg;
+
+  // LDraw content:
+  paths.forEach(path => path.pts.forEach(p => p.flipYZ()));
+  var lDrawContent = UTIL.paths2LDraw(paths, header);
+  document.getElementById('ldr_result').appendChild(document.createTextNode(lDrawContent));
+}
+
+$(document).ready(function() {
+  $('#ldr_original').load('sample_files/test2.dat', fold);
+});
+  </script>
+ </body>
+</html>

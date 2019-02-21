@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+ <head>
+    <meta charset=utf-8>
+    <title>Pattern Folder - Fold LDraw stickers and prints</title>
+    <meta name="viewport" content="width=device-width" />
+    <style>
+      body {
+        font-family: "Arial","Helvetica",sans-serif;
+        padding: 0;
+        margin: 0;
+        background-color: #EEE;
+      }
+      h1, h3 {
+        text-transform: uppercase;
+        display: block;
+        text-align: center;
+        margin: 0;
+        padding: 0.5em;
+        font-size: 2em;
+      }
+      h1 {
+        background-color: #000;
+        color: white;
+      }
+      h3 {
+        background-color: #D9D;
+      }
+      #svg_folded, #svg_original {
+        background-color: white;
+      }
+      .section {
+        display: block;
+        margin: 0.5em;
+      }
+      .desc {
+        margin: 0.5em;
+      }
+      .choice {
+        display: table;
+        margin: 0.5em;
+      }
+      .choice, textarea, button {
+        display: block;
+        width: 95%;
+      }
+      button {
+        height: 4em;
+      }
+      #contact {
+        margin: 2em;
+        text-align: center;
+      }
+      .error, .warning {
+        display: block;
+        margin: 1em;
+        padding: 0.5em;
+        font-weigght: bold;
+      }
+      .error {
+        border: 0.2em solid red;
+      }
+      .warning {
+        border: 0.2em solid orange;
+      }
+    </style>
+ </head>
+ <body>
+  <script src="js/jquery.min.js"></script>
+  <script src="js/colors.js"></script>
+  <script src="js/geometry.js"></script>
+  <script src="js/height_map.js"></script>
+  <script src="js/pattern_folder.js"></script>
+  
+  <h1>Pattern Folder - Fold LDraw stickers and prints</h1>
+
+  <h3>Step 1 - sticker/print</h3>
+  <div class="section">
+   <span class="desc">
+     Select the LDraw pattern which represents either a sticker or a print.
+     This can be done using either a URL, a file, or by pasting the content into the text area below
+   </span>
+   <span class="choice">
+    <label for="url">URL from a website</label>
+    <input id="url" name="url" type="text" onchange="readFromUrl(event);" />
+   </span>
+   <span class="choice">
+    <label for="file">DAT or LDR file on your device</label>
+    <input id="file" name="file" type="file" onchange="readFromFile(event);" />
+   </span>
+   <span class="choice">
+    <textarea id="file_content" onkeyup="readFromText()" rows="8">0 Or paste the content of the LDraw file here</textarea>
+   </span>
+
+   <div id="warnings">
+   </div>
+   <div id="errors">
+   </div>
+
+   <div id="svg_original"></div>
+  </div>
+
+  <h3>Step 2 - Surface</h3>
+  <div class="section">
+   <span class="desc">
+     Select the surface onto which the pattern should be folded. 
+     If your preferred surface is not present, then you can set the surface manually in the text area below.
+   </span>
+   <span class="choice">
+    <textarea id="surface" onkeyup="readFromText()" rows="3"
+>#Example:
+horizontal
+-100 -100 -40 -30 0 0 40 30 100 100
+</textarea>
+   </span>
+
+   <span class="desc">
+     You can adjust the position of the pattern below. 
+     As an example. If a value of 0.5 is selected while the surface indicates 'horizontal', then the pattern will be placed 0.5 LDU to the right.
+   </span>
+   <span class="choice">
+    <label for="position">Position</label>
+    <input id="position" name="position" type="text" value="0" onchange="readFromText();" />
+   </span>
+  </div>
+
+  <h3>Step 3 - Download the result</h3>
+  <div class="section">
+   <div id="svg_folded">
+   </div>
+   <span class="choice">
+     <textarea id="ldr_result" rows="10"></textarea>
+     <button onclick="copyToClipboard();">Copy LDraw File to Clipboard</button>
+   </span>
+  </div>
+
+  <div id="contact">
+    <a href="https://github.com/LasseD/PatternFolder">PatternFolder</a> is in the public domain and may be freely distributed.
+    Contact: Lasse Deleuran on <a href="mailto:lasse.deleuran@gmail.com">lasse.deleuran@gmail.com</a>.
+  </div>
+
+  <script>
+var seenWarningTypes = {};
+
+function resetWarningsAndErrors() {
+  $('#warnings').empty();
+  $('#errors').empty();
+  seenWarningTypes = {};
+}
+
+function onWarning(type, message) {
+  console.warn(message);
+  if(seenWarningTypes.hasOwnProperty(type)) {
+    return; // Already seen.
+  }
+
+  message = message.replace('<', '&lt;');
+
+  var span = document.createElement('span');
+  span.setAttribute('class', 'warning');
+  span.innerHTML = message;
+  $('#warnings').append(span);
+  
+  seenWarningTypes[type] = true;
+}
+
+function onError(message) {
+  var span = document.createElement('span');
+  span.setAttribute('class', 'error');
+  span.innerHTML = message;
+  $('#errors').empty().append(span);
+}
+
+function fold(ldr) {
+  resetWarningsAndErrors();
+
+  if(!ldr) { // Fetch from text area:
+    ldr = $('#file_content')[0].value;
+  }
+  else { // Update text area:
+    $('#file_content').val(ldr);
+  }
+
+  var [paths,header] = UTIL.ldr2Paths(ldr, onWarning);
+
+  var originalSvg = UTIL.paths2Svg(paths);
+  $('#svg_original').empty().append(originalSvg);
+
+  var position = parseFloat($('#position')[0].value); // TODO Use position - add UTIL.pushPaths(x) to pattern_folder.js
+
+  // Get heightPoints from text area:
+  var mapper = new LDR.LinearHeightMap();
+  mapper.addHeightsFromText($('#surface')[0].value);
+  paths = mapper.foldPaths(paths);
+
+  // LDraw SVG:
+  var foldedSvg = UTIL.paths2Svg(paths);
+  $('#svg_folded').empty().append(foldedSvg);
+
+  // LDraw content:
+  paths.forEach(path => path.pts.forEach(p => p.flipYZ()));
+  var lDrawContent = UTIL.paths2LDraw(paths, header);
+  $('#ldr_result').val(lDrawContent);
+}
+
+function readFromFile(event) {
+  var reader = new FileReader();
+  reader.onload = function(){
+    fold(reader.result);
+  };
+  reader.readAsText(event.target.files[0]);
+}
+
+function readFromUrl(event) {
+  var url = event.target.value;
+  console.log('Reading from URL ' + url);
+  var req = new XMLHttpRequest();
+  req.onreadystatechange = function() {
+    if(req.readyState != 4)
+      return;
+    if(req.status != 200) {
+      console.dir(event);
+      return;
+    }
+    fold(req.responseText);
+  };
+  req.open('GET', url, true);
+  req.send();
+}
+
+function readFromText() {
+  fold(null);
+}
+
+function copyToClipboard() {
+  $('#ldr_result')[0].select();
+  document.execCommand('copy');
+}
+  </script>
+ </body>
+</html>
