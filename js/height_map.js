@@ -6,7 +6,7 @@
   A an anchor point of (0,0) is expected to be present in heightPoints.
  */
 LDR.LinearHeightMap = function(heightPoints) {
-    this.heightPoints = heightPoints || [];
+    this.heightPoints = heightPoints || []; // height points either from constructor or 'addHeightsFromText'.
     this.horizontal = true;
 }
 
@@ -160,4 +160,76 @@ LDR.LinearHeightMap.prototype.foldPathsRightFrom0 = function(paths) {
     //ret.forEach(path => console.log(path.toSvg()));
 
     return ret;
+}
+
+/*
+  Creates a visual representation of the surface consisting of the height points.
+ */
+LDR.LinearHeightMap.prototype.toLDR = function() {
+    if(this.heightPoints.length == 0) {
+        return new LDR.LinearHeightMap([new UTIL.Point(-1, 0, 0), new UTIL.Point(1, 0, 0)]).toLdr(); // Avoid empty renderer.
+    }
+    const COLOR = " 39";
+    var h = this.horizontal;
+    var ret = '\n';
+    // Find min:
+    var minY = Math.max(...this.heightPoints.map(p => p.y));
+    var minX = this.heightPoints[0].x;
+    var maxX = this.heightPoints[this.heightPoints.length-1].x;
+
+    function put(x, y, low) {
+        low = low ? " 10" : " -10";
+        if(h) {
+            ret += " " + x + " " + y + low;
+        }
+        else {
+            ret += low + " " + y + " " + x;
+        }
+    }
+    function line(x1, y1, x2, y2, low) {
+        ret += "\n2 0"; put(x1, y1, low); put(x2, y2, low);
+    }
+    function lineAcross(x, y) {
+        ret += "\n2 0"; put(x, y, true); put(x, y, false);
+    }
+    
+    // Draw bottom:
+    // Quad:
+    ret += "\n4" + COLOR; put(minX, minY, true); put(maxX, minY, true); put(maxX, minY, false); put(minX, minY, false);
+    // Lines:
+    line(minX, minY, maxX, minY, true); line(minX, minY, maxX, minY, false);
+    lineAcross(minX, minY); lineAcross(maxX, minY);
+
+    // Right side (only quad):
+    var x = maxX;
+    var y = this.heightPoints[this.heightPoints.length-1].y;
+    ret += "\n4" + COLOR; put(x, minY, true); put(x, minY, false); put(x, y, false); put(x, y, true);    
+
+    // Left side:
+    // Quad:
+    x = minX;
+    y = this.heightPoints[0].y;
+    ret += "\n4" + COLOR; put(x, minY, true); put(x, minY, false); put(x, y, false); put(x, y, true);
+    // Lines:
+    line(minX, minY, minX, y, true); line(minX, minY, minX, y, false);
+    lineAcross(minX, y);
+
+    // All in the middle:
+    for(var i = 1; i < this.heightPoints.length; i++) {
+        var x0 = x, y0 = y;
+        x = this.heightPoints[i].x;
+        y = this.heightPoints[i].y;
+
+        // Top quad:
+        ret += "\n4" + COLOR; put(x0, y0, false); put(x, y, false); put(x, y, true); put(x0, y0, true);
+        // Side quads:
+        ret += "\n4" + COLOR; put(x0, y0, true); put(x, y, true); put(x, minY, true); put(x0, minY, true);
+        ret += "\n4" + COLOR; put(x, minY, false); put(x, y, false); put(x0, y0, false); put(x0, minY, false); 
+        // Lines:
+        lineAcross(x, y);
+        line(x0, y0, x, y, true); line(x0, y0, x, y, false);
+        line(x, minY, x, y, true); line(x, minY, x, y, false);
+    }
+    
+    return ret + '\n';
 }

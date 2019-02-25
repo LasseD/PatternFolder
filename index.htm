@@ -66,11 +66,18 @@
     </style>
  </head>
  <body>
+  <script src="js/three.min.js"></script>
+  <script src="js/OrbitControls.js"></script>
   <script src="js/jquery.min.js"></script>
   <script src="js/colors.js"></script>
   <script src="js/geometry.js"></script>
   <script src="js/height_map.js"></script>
   <script src="js/pattern_folder.js"></script>
+  <script src="js/LDROptions.js"></script>
+  <script src="js/LDRShaders.js"></script>
+  <script src="js/LDRColorMaterials.js"></script>
+  <script src="js/LDRGeometries.js"></script>
+  <script src="js/LDRLoader.js"></script>
   
   <h1>Pattern Folder - Fold LDraw stickers and prints</h1>
 
@@ -89,7 +96,7 @@
     <input id="file" name="file" type="file" onchange="readFromFile(event);" />
    </span>
    <span class="choice">
-    <textarea id="file_content" onkeyup="readFromText()" rows="8">0 Or paste the content of the LDraw file here</textarea>
+    <textarea id="file_content" onkeyup="fold(null)" rows="8">0 Or paste the content of the LDraw file here</textarea>
    </span>
 
    <div id="warnings">
@@ -107,7 +114,7 @@
      If your preferred surface is not present, then you can set the surface manually in the text area below.
    </span>
    <span class="choice">
-    <textarea id="surface" onkeyup="readFromText()" rows="3"
+    <textarea id="surface" onkeyup="fold(null)" rows="3"
 >#Example:
 horizontal
 -100 -100 -40 -30 0 0 40 30 100 100
@@ -120,14 +127,13 @@ horizontal
    </span>
    <span class="choice">
     <label for="position">Position</label>
-    <input id="position" name="position" type="text" value="0" onchange="readFromText();" />
+    <input id="position" name="position" type="text" value="0" onchange="fold(null);" />
    </span>
   </div>
 
-  <h3>Step 3 - Download the result</h3>
+  <h3>Step 3 - Get the result</h3>
   <div class="section">
-   <div id="svg_folded">
-   </div>
+   <div id="preview"></div>
    <span class="choice">
      <textarea id="ldr_result" rows="10"></textarea>
      <button onclick="copyToClipboard();">Copy LDraw File to Clipboard</button>
@@ -136,18 +142,20 @@ horizontal
 
   <div id="contact">
     <a href="https://github.com/LasseD/PatternFolder">PatternFolder</a> is in the public domain and may be freely distributed.
+    <a href="https://github.com/mrdoob/three.js">three.js and OrbitControls.js</a> use the MIT license.
     Contact: Lasse Deleuran on <a href="mailto:lasse.deleuran@gmail.com">lasse.deleuran@gmail.com</a>.
   </div>
 
   <script>
+/*
+  Warnings and errors:
+ */
 var seenWarningTypes = {};
-
 function resetWarningsAndErrors() {
   $('#warnings').empty();
   $('#errors').empty();
   seenWarningTypes = {};
 }
-
 function onWarning(type, message) {
   console.warn(message);
   if(seenWarningTypes.hasOwnProperty(type)) {
@@ -163,7 +171,6 @@ function onWarning(type, message) {
   
   seenWarningTypes[type] = true;
 }
-
 function onError(message) {
   var span = document.createElement('span');
   span.setAttribute('class', 'error');
@@ -171,6 +178,85 @@ function onError(message) {
   $('#errors').empty().append(span);
 }
 
+/*
+  three.js rendering:
+ */
+var ldrOptions = new LDR.Options(); // Determine how to show lines. Change this in sample_instruction.htm
+
+// Set up camera:
+var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+camera.position.set(10000, 7000, 10000);
+camera.lookAt(new THREE.Vector3());
+
+// Set up scene:
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0xFFFFFF);
+var baseObject;
+
+// Set up renderer:
+var renderer = new THREE.WebGLRenderer({antialias: true});
+renderer.setPixelRatio(window.devicePixelRatio);
+function render() {
+  renderer.render(scene, camera);
+}
+
+var preview = document.getElementById('preview');
+preview.appendChild(renderer.domElement);
+
+function onWindowResize(){
+  var w = preview.offsetWidth;
+  var h = preview.offsetHeight;
+  camera.left = -w;
+  camera.right = w;
+  camera.top = h;
+  camera.bottom = -h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+  render();
+}
+
+// React to user input:
+var controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.addEventListener('change', render);
+window.addEventListener('resize', onWindowResize, false);
+
+function showInScene(ldr) {
+  //console.log("Setting up scene for LDR: '" + ldr + "'");
+  var ldrLoader = new THREE.LDRLoader(function(){}, {onError:onError, onWarning:onWarning});
+  ldrLoader.parse(ldr);
+  console.dir(ldrLoader);
+  var mainModel = ldrLoader.ldrPartTypes[ldrLoader.mainModel]; // Main model from the LDraw file (first model encountered)
+
+  var geometryBuilder = new LDR.GeometryBuilder(ldrLoader, {});
+  geometryBuilder.build([mainModel]);
+
+  // Place model in scene:
+  var origo = new THREE.Vector3();
+  var inv = new THREE.Matrix3(); 
+  inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
+
+  // Generate the mesh:
+  if(baseObject)
+    scene.remove(baseObject)
+  baseObject = new THREE.Group();
+  scene.add(baseObject);
+  var mc = new LDR.MeshCollector(baseObject, baseObject);
+  mainModel.generateThreePart(ldrLoader, 0, origo, inv, true, false, mc);
+
+  // Find center of drawn model:
+  var b = mc.boundingBox;
+  var elementCenter = new THREE.Vector3();
+  b.getCenter(elementCenter);
+  baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+  //baseObject.add(new THREE.Box3Helper(b, 0xff0000)); // Uncomment if you want to see the bounding box
+
+  camera.zoom = window.innerWidth/b.min.distanceTo(b.max);
+  onWindowResize();
+}
+
+/*
+  Folding
+ */
 function fold(ldr) {
   resetWarningsAndErrors();
 
@@ -194,13 +280,14 @@ function fold(ldr) {
   paths = mapper.foldPaths(paths);
 
   // LDraw SVG:
-  var foldedSvg = UTIL.paths2Svg(paths);
-  $('#svg_folded').empty().append(foldedSvg);
+  //var foldedSvg = UTIL.paths2Svg(paths);
+  //$('#svg_folded').empty().append(foldedSvg);
 
   // LDraw content:
   paths.forEach(path => path.pts.forEach(p => p.flipYZ()));
   var lDrawContent = UTIL.paths2LDraw(paths, header);
   $('#ldr_result').val(lDrawContent);
+  showInScene(lDrawContent + mapper.toLDR());
 }
 
 function readFromFile(event) {
@@ -228,14 +315,14 @@ function readFromUrl(event) {
   req.send();
 }
 
-function readFromText() {
-  fold(null);
-}
-
 function copyToClipboard() {
   $('#ldr_result')[0].select();
   document.execCommand('copy');
 }
+
+$(document).ready(function() {
+  fold();
+});
   </script>
  </body>
 </html>
