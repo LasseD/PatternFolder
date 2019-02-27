@@ -68,7 +68,6 @@ UTIL.ldr2Paths = function(ldr, onWarning) {
 }
 
 UTIL.paths2LDraw = function(paths, header) {
-    console.dir(paths); console.log(header);
     function convert(x) {
         x = x.toFixed(UTIL.Precision);
         for(var i = 0; i < UTIL.Precision; i++) {

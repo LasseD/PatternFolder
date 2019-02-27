@@ -26,6 +26,7 @@
   <script src="js/LDRColorMaterials.js"></script>
   <script src="js/LDRGeometries.js"></script>
   <script src="js/LDRLoader.js"></script>
+  <script src="js/maps.js"></script>
   
   <h3>DAT</h3>
   <pre id="ldr"></pre>
@@ -83,8 +84,8 @@ var origo = new THREE.Vector3();
 var inv = new THREE.Matrix3(); inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
 
 function showInScenes(ldr1, ldr2) {
-  console.log("Setting up scene for LDR: " + ldr1);
-  console.log("and "+ ldr2);
+  //console.log("Setting up scene for LDR: " + ldr1);
+  //console.log("and "+ ldr2);
 
   function showInScene(ldr, scene, camera, baseObject) {
     var ldrLoader = new THREE.LDRLoader(function(){}, {onError:console.dir, onWarning:console.warn});
@@ -139,18 +140,31 @@ function fold(ldr) {
   var [paths,header] = UTIL.ldr2Paths(ldr, console.warn);
 
   // Get heightPoints from text area:
-  var map = "horizontal 0\n-100 -100 -40 -30 -10 5 0 0 10 -5 40 30 100 100";
+  var map = `
+      horizontal 0
+#      -30 0
+#      0 0
+#      30 0
+ 20     -16 
+ 12.616 -15.652
+  5.36  -14.604
+ -1.648 -12.883
+ -8.284 -10.51
+-14.44   -7.534
+-20     -4
+  `;
   var mapper = new LDR.LinearHeightMap(map);
   paths = mapper.foldPaths(paths);
 
   // LDraw content:
   var lDrawContent = UTIL.paths2LDraw(paths, header);
   $('#ldr_result').val(lDrawContent);
-  showInScenes(ldr, lDrawContent + mapper.toLDR());
+  showInScenes(ldr, lDrawContent + mapper.toLDR());//*/
 }
 
 $(document).ready(function() {
-  $('#ldr').load('./sample_files/test1.dat', fold);
+//$('#ldr').load('./sample_files/sticker_corvette_flag.dat', fold);
+$('#ldr').load('./sample_files/test2.dat', fold);
 });
   </script>
  </body>
