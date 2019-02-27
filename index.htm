@@ -64,6 +64,19 @@
         display: block;
         margin: auto;
       }
+      .map {
+        display: inline-block;
+        width: 100px;
+        height: 100px;
+        background-color: #BFF;
+        margin-right: 1em;
+        margin-top: 1em;
+      }
+      .map .title {
+        display: block;
+        text-align: center;
+        padding-top: 0.2em;
+      }
     </style>
  </head>
  <body>
@@ -79,6 +92,7 @@
   <script src="js/LDRColorMaterials.js"></script>
   <script src="js/LDRGeometries.js"></script>
   <script src="js/LDRLoader.js"></script>
+  <script src="js/maps.js"></script>
   
   <h1>Pattern Folder - Fold LDraw stickers and prints</h1>
 
@@ -97,7 +111,9 @@
     <input id="file" name="file" type="file" onchange="readFromFile(event);" />
    </span>
    <span class="choice">
-    <textarea id="file_content" onkeyup="fold(null)" rows="8">0 Or paste the content of the LDraw file here</textarea>
+    <textarea id="file_content" onkeyup="fold(null)" rows="8">0 Or paste the content of the LDraw file here. Such as:
+2 0 -100 0 0 100 0 0
+</textarea>
    </span>
 
    <div id="warnings">
@@ -114,6 +130,8 @@
      Select the surface onto which the pattern should be folded. 
      If your preferred surface is not present, then you can set the surface manually in the text area below.
    </span>
+   <div id="maps">
+   </div>
    <span class="choice">
     <textarea id="surface" onkeyup="fold(null)" rows="3"
 >#Example: Horizontal height map.
@@ -293,6 +311,19 @@ function fold(ldr) {
   showInScenes(ldr, lDrawContent + mapper.toLDR());
 }
 
+function setUpMaps() {
+  var mapsEle = $('#maps')[0];
+  function addMap(m) {
+    var mapEle = document.createElement('span'); mapsEle.append(mapEle);
+    mapEle.setAttribute('class', 'map');
+    var titleEle = document.createElement('span'); mapEle.append(titleEle);
+    titleEle.setAttribute('class', 'title');
+    titleEle.innerHTML = m.id;
+    mapEle.addEventListener('click', function(){$('#surface').val(m.toTxt()); fold();});
+  }
+  MAPS.ALL.forEach(addMap);
+}
+
 function readFromFile(event) {
   var reader = new FileReader();
   reader.onload = function(){
@@ -324,6 +355,7 @@ function copyToClipboard() {
 }
 
 $(document).ready(function() {
+  setUpMaps();
   fold();
 });
   </script>

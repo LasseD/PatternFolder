@@ -138,33 +138,19 @@ function showInScenes(ldr1, ldr2) {
 function fold(ldr) {
   //console.log('Folding ' + ldr);
   var [paths,header] = UTIL.ldr2Paths(ldr, console.warn);
-
-  // Get heightPoints from text area:
-  var map = `
-      horizontal 0
-#      -30 0
-#      0 0
-#      30 0
- 20     -16 
- 12.616 -15.652
-  5.36  -14.604
- -1.648 -12.883
- -8.284 -10.51
--14.44   -7.534
--20     -4
-  `;
+  var map = MAPS.ALL[0].toTxt();
   var mapper = new LDR.LinearHeightMap(map);
   paths = mapper.foldPaths(paths);
 
   // LDraw content:
   var lDrawContent = UTIL.paths2LDraw(paths, header);
   $('#ldr_result').val(lDrawContent);
-  showInScenes(ldr, lDrawContent + mapper.toLDR());//*/
+  showInScenes(ldr, lDrawContent + mapper.toLDR());
 }
 
 $(document).ready(function() {
-//$('#ldr').load('./sample_files/sticker_corvette_flag.dat', fold);
-$('#ldr').load('./sample_files/test2.dat', fold);
+$('#ldr').load('./sample_files/sticker_corvette_flag.dat', fold);
+//$('#ldr').load('./sample_files/test2.dat', fold);
 });
   </script>
  </body>

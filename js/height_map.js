@@ -73,7 +73,6 @@ LDR.LinearHeightMap = function(txt) {
             var h = this.heightPoints.slice(0, i);
             h.push(new UTIL.Point(0, y, 0));
             h.push(...this.heightPoints.slice(i));
-            console.dir(h);
             this.heightPoints = h;
             return; // done.
         }
@@ -204,7 +203,6 @@ LDR.LinearHeightMap.prototype.toLDR = function() {
     var h = this.heightPoints.map(p => new UTIL.Point(p.x, p.y + 0.5, p.z));
 
     var minY = Math.max(...h.map(p => p.y));
-    console.log('min=' + minY );
     function put(x, y, low) {
         low = low ? " 10" : " -10";
         if(horizontal) {
