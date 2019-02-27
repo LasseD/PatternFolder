@@ -392,10 +392,12 @@ THREE.LDRLoader.prototype.parse = function(data) {
     }
 
     part.addStep(step);
-    if(part.ID === null && this.mainModel === undefined) {
+    if(part.ID === null && this.mainModel === undefined && part.steps.length > 0) {
         part.ID = this.mainModel = 'main'; // No name given - use 'main'.
     }
-    this.ldrPartTypes[part.ID] = part;
+    if(part.steps.length > 0) {
+        this.ldrPartTypes[part.ID] = part; // Only set when valid.
+    }
 
     var parseEndTime = new Date();
     //console.log("LDraw file read in " + (parseEndTime-parseStartTime) + "ms.");
@@ -826,10 +828,12 @@ THREE.LDRPartType.prototype.generateThreePart = function(loader, c, p, r, cull, 
 	var material = mc.getTriangleMaterial(this.geometry.triangleColorManager, c, LDR.Colors.isTrans(c));
 	var mesh = new THREE.Mesh(this.geometry.triangleGeometry, material);
 	mesh.applyMatrix(m4);
-	if(LDR.Colors.isTrans(c))
+	if(LDR.Colors.isTrans(c)) {
 	    mc.addTrans(mesh);
-	else
+        }
+	else {
 	    mc.addOpaque(mesh);
+        }
 
 	if(!expanded) {
 	    var b = this.geometry.triangleGeometry.boundingBox;

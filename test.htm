@@ -3,60 +3,154 @@
  <head>
     <meta charset=utf-8>
     <meta name="viewport" content="width=device-width" />
-    <style>body { background-color: #ddd; } object, svg { background-color: white; } svg {opacity: 0.8;}</style>
+    <style>
+      body {
+        background-color: #EEE;
+      }
+      canvas {
+        display: block;
+        margin: auto;
+      }
+    </style>
  </head>
  <body>
+  <script src="js/three.min.js"></script>
+  <script src="js/OrbitControls.js"></script>
   <script src="js/jquery.min.js"></script>
   <script src="js/colors.js"></script>
   <script src="js/geometry.js"></script>
   <script src="js/height_map.js"></script>
   <script src="js/pattern_folder.js"></script>
+  <script src="js/LDROptions.js"></script>
+  <script src="js/LDRShaders.js"></script>
+  <script src="js/LDRColorMaterials.js"></script>
+  <script src="js/LDRGeometries.js"></script>
+  <script src="js/LDRLoader.js"></script>
+  
+  <h3>DAT</h3>
+  <pre id="ldr"></pre>
+  <div id="preview1"></div>
 
-  <h3>LDraw File to Fold</h3>
-  <pre id="ldr_original"></pre>
-  <div id="svg_original"></div>
+  <h3>FOLDED</h3>
+  <div id="preview2"></div>
 
-  <h3>Folded</h3>
-  <pre id="ldr_result"></pre>
-  <div id="svg_result"></div>
   <script>
-function onWarning(w, e) {
-  console.warn(w);
-  console.warn(e);
-}
-function onError(e) {
-  console.warn('Error: ' + e);
+var ldrOptions = new LDR.Options(); // Determine how to show lines.
+
+// Set up cameras:
+var camera1 = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+var camera2 = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+camera1.position.set(10000, 7000, 10000); camera2.position.set(10000, 7000, 10000);
+camera1.lookAt(new THREE.Vector3()); camera2.lookAt(new THREE.Vector3());
+
+// Set up scenes:
+var scene1 = new THREE.Scene(), scene2 = new THREE.Scene(); // Original and folded.
+scene1.background = scene2.background = new THREE.Color(0xFFFFFF);
+var baseObject1, baseObject2;
+
+// Set up renderer:
+var renderer1 = new THREE.WebGLRenderer({antialias: true}), renderer2 = new THREE.WebGLRenderer({antialias: true});
+renderer1.setPixelRatio(window.devicePixelRatio); renderer2.setPixelRatio(window.devicePixelRatio);
+function render() {
+  renderer1.render(scene1, camera1);
+  renderer2.render(scene2, camera2);
 }
 
-function fold() {
-  var ldr = $('#ldr_original')[0].innerHTML;
-  var [paths,header] = UTIL.ldr2Paths(ldr, onWarning);
-  var svg = UTIL.paths2Svg(paths);
-  document.getElementById('svg_original').innerHTML = svg;
+var preview1 = document.getElementById('preview1'), preview2 = document.getElementById('preview2');
+preview1.appendChild(renderer1.domElement); preview2.appendChild(renderer2.domElement);
 
-  var heightPoints = [
-    new UTIL.Point(-100, -100, 0),
-    new UTIL.Point(-40, -30, 0),
-    new UTIL.Point(0,0,0),
-    new UTIL.Point(40, 30, 0),
-    new UTIL.Point(100, 100, 0)
-  ];
-  var mapper = new LDR.LinearHeightMap(heightPoints);
+function onWindowResize(){
+  var w = window.innerHeight * 0.9;//preview1.offsetWidth*0.8;
+  var h = window.innerWidth * 0.9;//preview1.offsetHeight*0.8;
+  w = h = Math.min(w, h);
+  camera1.left = camera2.left = -w;
+  camera1.right = camera2.right = w;
+  camera1.top = camera2.top = h;
+  camera1.bottom = camera2.bottom = -h;
+  camera1.updateProjectionMatrix(); camera2.updateProjectionMatrix();
+  renderer1.setSize(w, h); renderer2.setSize(w, h);
+  render();
+}
+window.addEventListener('resize', onWindowResize, false);
+
+// React to user input:
+var controls1 = new THREE.OrbitControls(camera1, renderer1.domElement);
+var controls2 = new THREE.OrbitControls(camera2, renderer2.domElement);
+controls1.addEventListener('change', render); controls2.addEventListener('change', render);
+
+// Used for setting up models in scenes:
+var origo = new THREE.Vector3();
+var inv = new THREE.Matrix3(); inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
+
+function showInScenes(ldr1, ldr2) {
+  console.log("Setting up scene for LDR: " + ldr1);
+  console.log("and "+ ldr2);
+
+  function showInScene(ldr, scene, camera, baseObject) {
+    var ldrLoader = new THREE.LDRLoader(function(){}, {onError:console.dir, onWarning:console.warn});
+    ldrLoader.parse(ldr);
+    if(!ldrLoader.mainModel) {
+      console.log('A valid model was not parsed. Nothing will be shown');
+      return baseObject;
+    }
+    var mainModel = ldrLoader.ldrPartTypes[ldrLoader.mainModel]; // Main model from the LDraw file (first model encountered)
+    var geometryBuilder = new LDR.GeometryBuilder(ldrLoader, {});
+    geometryBuilder.build([mainModel]);
+    
+    if(baseObject) {
+      scene.remove(baseObject);
+    }
+    baseObject = new THREE.Group();
+    scene.add(baseObject);
+
+    var opaqueObj = new THREE.Group();
+    baseObject.add(opaqueObj);
+    var transObj = new THREE.Group();
+    baseObject.add(transObj);
+
+    var mc = new LDR.MeshCollector(opaqueObj, transObj);
+    mainModel.generateThreePart(ldrLoader, 16, origo, inv, true, false, mc);
+
+    // Find center of drawn model:
+    var b = mc.boundingBox;
+    var elementCenter = new THREE.Vector3();
+    b.getCenter(elementCenter);
+    baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+    //baseObject.add(new THREE.Box3Helper(b, 0xff0000)); // Uncomment if you want to see the bounding box
+
+    camera.zoom = window.innerWidth/b.min.distanceTo(b.max);
+    return baseObject;
+  }
+
+  // First handle preview:
+  baseObject1 = showInScene(ldr1, scene1, camera1, baseObject1);
+
+  // Then the folded model:
+  baseObject2 = showInScene(ldr2, scene2, camera2, baseObject2);
+
+  onWindowResize();
+}
+
+/*
+  Folding
+ */
+function fold(ldr) {
+  //console.log('Folding ' + ldr);
+  var [paths,header] = UTIL.ldr2Paths(ldr, console.warn);
+
+  // Get heightPoints from text area:
+  var map = "horizontal 0\n-100 -100 -40 -30 -10 5 0 0 10 -5 40 30 100 100";
+  var mapper = new LDR.LinearHeightMap(map);
   paths = mapper.foldPaths(paths);
 
-  // LDraw SVG:
-  svg = UTIL.paths2Svg(paths);
-  console.log(svg);
-  document.getElementById('svg_result').innerHTML = svg;
-
   // LDraw content:
-  paths.forEach(path => path.pts.forEach(p => p.flipYZ()));
   var lDrawContent = UTIL.paths2LDraw(paths, header);
-  document.getElementById('ldr_result').appendChild(document.createTextNode(lDrawContent));
+  $('#ldr_result').val(lDrawContent);
+  showInScenes(ldr, lDrawContent + mapper.toLDR());
 }
 
 $(document).ready(function() {
-  $('#ldr_original').load('sample_files/test2.dat', fold);
+  $('#ldr').load('./sample_files/test1.dat', fold);
 });
   </script>
  </body>

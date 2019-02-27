@@ -1,38 +1,34 @@
 'use strict';
 
 /*
-  heightsPoints: [] -> {x, height}
-  Assumes heightPoints are UTIL.Points objects sorted by x.
-  A an anchor point of (0,0) is expected to be present in heightPoints.
- */
-LDR.LinearHeightMap = function(heightPoints) {
-    this.heightPoints = heightPoints || []; // height points either from constructor or 'addHeightsFromText'.
-    this.horizontal = true;
-}
-
-/*
   Assumes txt is formatted as follows:
   - Any empty line, or line starting with '#' is ignored
   - The symbol 'horizontal' or 'vertical' is expected to appear on a line by itself
   - All other lines should denote points by position and height as float values
+
+  A an anchor point of (0,0) is expected to be present in the height points.
  */
-LDR.LinearHeightMap.prototype.addHeightsFromText = function(txt) {
+LDR.LinearHeightMap = function(txt) {
+    this.horizontal = true;
+    this.heightPoints = [];
+
     var lines = txt.split(/(\r\n)|\n/);
 
     for(var i = 0; i < lines.length; i++) {
 	var line = lines[i];
 	if(!line || line[0] == '#')
 	    continue; // Empty line, comment line, or 'undefined' due to '\r\n' split.
-        line = line.trim();
-        if(line == 'horizontal') {
+        var parts = line.split(" ").filter(x => x !== ''); // Remove empty strings.
+        if(parts.length == 0)
+            continue;
+        if(parts[0] == 'horizontal') {
             this.horizontal = true;
         }
-        else if(line == 'vertical') {
+        else if(parts[0] == 'vertical') {
             this.horizontal = false;
         }
         else {
             // Parse coordinates:
-            var parts = line.split(" ").filter(x => x !== ''); // Remove empty strings.
             for(var i = 0; i < parts.length; i+= 2) {
                 var x = parseFloat(parts[i]), y = parseFloat(parts[i+1]);
                 this.heightPoints.push(new UTIL.Point(x, y, 0));
@@ -84,7 +80,7 @@ LDR.LinearHeightMap.prototype.foldPaths = function(paths) {
   Return a list of UTIL.CH objects folded onto the height map.
  */
 LDR.LinearHeightMap.prototype.foldPathsRightFrom0 = function(paths) {
-    //console.log('Folding:'); paths.forEach(p => console.log(p.toSvg()));
+    console.log('Folding right from 0:'); console.dir(paths);
 
     const heightPoints = this.heightPoints.filter(p => p.x >= 0);
     heightPoints.sort((a,b) => a.x - b.x);
@@ -96,21 +92,21 @@ LDR.LinearHeightMap.prototype.foldPathsRightFrom0 = function(paths) {
     heightPoints.forEach(function(mapRight) {
         var origRight = origLeft + mapRight.dist(mapLeft);
         var line = new UTIL.Line(new UTIL.Point(origRight, 1, 0), new UTIL.Point(origRight, -1, 0));
-        //console.log("Cutting for line x=" + origRight);
+        console.log("Cutting for line x=" + origRight);
 
         // Cut all:
         var newPaths = [];
         paths.forEach(function(path) {
             if(path.intersectsLine(line)) {
-                //console.log('CUT ' + path.toSvg());
+                console.log('split');
                 path.splitByLine(line, newPaths);
             }
             else {
-                //console.log('IGNORE ' + path.toSvg());
                 newPaths.push(path);
             }
         });
         paths = newPaths;
+        console.dir(newPaths);
 
         origLeft = origRight;
         mapLeft = mapRight;
@@ -142,7 +138,7 @@ LDR.LinearHeightMap.prototype.foldPathsRightFrom0 = function(paths) {
             path = path.clone();
             // Update heights of points of path and output:
             path.pts.forEach(function(p) {
-                    //console.log('Mapping ' + p.x + ', ' + p.y + ', ' + p.z + ' to ');
+                //console.log('Mapping ' + p.x + ', ' + p.y + ', ' + p.z + ' to ');
                 var t = (p.x-origLeft) / origDx;
                 p.x = mapLeft.x + mapDx * t;
                 // p.y remains unchanged.
@@ -156,8 +152,7 @@ LDR.LinearHeightMap.prototype.foldPathsRightFrom0 = function(paths) {
         mapLeft = mapRight;
     });
 
-    //console.log('Folded paths:');
-    //ret.forEach(path => console.log(path.toSvg()));
+    console.log('Folded paths:'); console.dir(ret);
 
     return ret;
 }
@@ -170,16 +165,14 @@ LDR.LinearHeightMap.prototype.toLDR = function() {
         return new LDR.LinearHeightMap([new UTIL.Point(-1, 0, 0), new UTIL.Point(1, 0, 0)]).toLdr(); // Avoid empty renderer.
     }
     const COLOR = " 39";
-    var h = this.horizontal;
+    var horizontal = this.horizontal;
     var ret = '\n';
     // Find min:
     var minY = Math.max(...this.heightPoints.map(p => p.y));
-    var minX = this.heightPoints[0].x;
-    var maxX = this.heightPoints[this.heightPoints.length-1].x;
 
     function put(x, y, low) {
         low = low ? " 10" : " -10";
-        if(h) {
+        if(horizontal) {
             ret += " " + x + " " + y + low;
         }
         else {
@@ -193,7 +186,11 @@ LDR.LinearHeightMap.prototype.toLDR = function() {
         ret += "\n2 0"; put(x, y, true); put(x, y, false);
     }
     
+    var h = this.heightPoints.map(p => new UTIL.Point(p.x, p.y + 0.5, p.z));
+
     // Draw bottom:
+    var minX = h[0].x;
+    var maxX = h[h.length-1].x;
     // Quad:
     ret += "\n4" + COLOR; put(minX, minY, true); put(maxX, minY, true); put(maxX, minY, false); put(minX, minY, false);
     // Lines:
@@ -202,23 +199,23 @@ LDR.LinearHeightMap.prototype.toLDR = function() {
 
     // Right side (only quad):
     var x = maxX;
-    var y = this.heightPoints[this.heightPoints.length-1].y;
+    var y = h[h.length-1].y;
     ret += "\n4" + COLOR; put(x, minY, true); put(x, minY, false); put(x, y, false); put(x, y, true);    
 
     // Left side:
     // Quad:
     x = minX;
-    y = this.heightPoints[0].y;
+    y = h[0].y;
     ret += "\n4" + COLOR; put(x, minY, true); put(x, minY, false); put(x, y, false); put(x, y, true);
     // Lines:
     line(minX, minY, minX, y, true); line(minX, minY, minX, y, false);
     lineAcross(minX, y);
 
     // All in the middle:
-    for(var i = 1; i < this.heightPoints.length; i++) {
+    for(var i = 1; i < h.length; i++) {
         var x0 = x, y0 = y;
-        x = this.heightPoints[i].x;
-        y = this.heightPoints[i].y;
+        x = h[i].x;
+        y = h[i].y;
 
         // Top quad:
         ret += "\n4" + COLOR; put(x0, y0, false); put(x, y, false); put(x, y, true); put(x0, y0, true);

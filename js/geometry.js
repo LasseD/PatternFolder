@@ -108,6 +108,18 @@ UTIL.Line.prototype.intersectsPoint = function(p) {
     return UTIL.isZero(turn);
 }
 
+UTIL.Line.prototype.intersectsPointOnSegment = function(p) {
+    if(!this.intersectsPoint(p))
+        return false;
+
+    // Check if p is between p1 and p2:
+    const dx = this.p2.x - this.p1.x, dy = this.p2.y = this.p1.y;
+    const p3 = new UTIL.Point(this.p1.x + dy, this.p1.y + dx, 0);
+    const p4 = new UTIL.Point(this.p2.x + dy, this.p2.y + dx, 0);
+
+    return !(UTIL.leftTurn(p3, this.p1, p) || UTIL.rightTurn(p4, this.p2, p));
+}
+
 UTIL.Line.prototype.getCenterPoint = function() {
     var x = (this.p1.x+this.p2.x)*0.5;
     var y = (this.p1.y+this.p2.y)*0.5;
@@ -162,10 +174,10 @@ UTIL.removeInlinePoints = function(pts) {
     // Find index of min-point, as it is guaranteed not to be removed:
     var iMin = 0, min = pts[0];
     for(var i = 0; i < pts.length; i++) {
-        const p = pts[i];
+        var p = pts[i];
         if(p.x < min.x || (p.x == min.x && p.y < min.y)) {
             iMin = i;
-            min = pts[i];
+            min = p;
         }
     }
 
@@ -180,7 +192,7 @@ UTIL.removeInlinePoints = function(pts) {
             console.warn("Removing duplicate on position " + idx + ": " + p.x + ", " + p.y);
             continue; // Duplicate
         }
-        if(UTIL.noTurn(prev, p, next)) {
+        if(UTIL.isZero(prev.z - p.z) && UTIL.isZero(p.z - next.z) && UTIL.noTurn(prev, p, next)) {
             console.warn("Removing inline point on position " + idx + ": " + p.x + ", " + p.y);
             continue; // Inline
         }
@@ -193,8 +205,8 @@ UTIL.removeInlinePoints = function(pts) {
 
 UTIL.CH = function(pts, color) {
     this.pts = UTIL.removeInlinePoints(pts);
-    if(this.pts.length < 3) {
-        throw "Degenerate convex hull with only " + this.pts.length + " vertices!";
+    if(this.pts < 2) {
+        throw "CH degenerates to a point!";
     }
     this.color = color;
     //this.color = UTIL.IDX++;
@@ -210,14 +222,10 @@ UTIL.CH.prototype.getAPointInside = function() {
     // Simply return the centroid:
     var x = this.pts.map(p => p.x).reduce((sum, x) => x+sum)/this.pts.length;
     var y = this.pts.map(p => p.y).reduce((sum, y) => y+sum)/this.pts.length;
-    var ret = new UTIL.Point(x, y, this.pts[0].z);
-    if(!this.isInside(ret)) {
-        console.warn(this.toSvg());
-        throw "Invalid point inside triangle: " + ret.toSvg();;
-    }
-    return ret;
+    return new UTIL.Point(x, y, this.pts[0].z);
 }
 
+/*
 UTIL.CH.prototype.toLDraw = function() {
     function convert(x) {
         if(x == parseInt(x))
@@ -233,6 +241,15 @@ UTIL.CH.prototype.toLDraw = function() {
 
     var pts = this.pts;
     var ret = "";
+    if(this.degenerate) {
+        for(var i = 1; i < this.pts.length; i++) {
+            var p1 = pts[i-1];
+            var p2 = pts[i];
+            ret += " " + convert(p1.x) + " 0 " + convert(p1.y); // TODO
+        }
+        return ret;
+    }
+
     do {
         var len = Math.min(4, pts.length);
         ret += len + " " + this.color;
@@ -246,27 +263,36 @@ UTIL.CH.prototype.toLDraw = function() {
     while(pts.length > 0);
 
     return ret;
-}
+}*/
 
+/*
 UTIL.CH.prototype.toSvg = function() {
     var ret = '--><path fill="' + this.color + '" d="M';
 
     this.pts.forEach(p => ret += " " + p.x + "," + p.y);
     ret += 'Z"/><!--';
     return ret;
-}
+}*/
 
 UTIL.CH.prototype.isInside = function(pointInside) {
+    if(this.pts.length == 2) { // Check line segment:
+        var p1 = this.pts[0];
+        var p2 = this.pts[1];
+        return new UTIL.Line(p1, p2).intersectsPointOnSegment(pointInside);
+    }
+
     var prev = this.pts[this.pts.length-1];
     for(var i = 0; i < this.pts.length; i++) {
         var p = this.pts[i];
-        if(!UTIL.rightTurn(prev, p, pointInside))
+        if(!UTIL.rightTurn(prev, p, pointInside)) {
             return false;
+        }
         prev = p;
     }
     return true;
 }
 
+/*
 UTIL.CH.prototype.isOnOrInside = function(pointInside) {
     var prev = this.pts[this.pts.length-1];
     for(var i = 0; i < this.pts.length; i++) {
@@ -276,7 +302,7 @@ UTIL.CH.prototype.isOnOrInside = function(pointInside) {
         prev = p;
     }
     return true;
-}
+    }*/
 
 UTIL.CH.prototype.intersectsLine = function(line) {
     var prev = this.pts[this.pts.length-1];
@@ -305,6 +331,11 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
         console.log(this.toSvg());
         pointIntersectionIndices.forEach(idx => console.log(this.pts[idx].toSvg()));
         throw "Line intersects more than 2 vertices of CH: " + pointIntersectionIndices;
+    }
+    if(pointIntersectionIndices.length > 0 && this.pts.length == 2) {
+        // Cuts end point - no split.
+        ret.push(this);
+        return; // Adjacent corners are intersected - do not split.
     }
 
     const color = this.color;
@@ -400,6 +431,13 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
     }
 
     // Two line splits:
+    const i0 = lineIntersectionIndices[0];
+    const x0 = line.getIntersectionWithLine(this.pts[i0], this.pts[(i0+1)%this.pts.length]);
+    if(this.pts.length == 2) { // Special case: Split line segment:
+        push( [this.pts[0], x0] );
+        push( [x0, this.pts[1] ]);
+        return;
+    }
     if(lineIntersectionIndices.length != 2) {
         console.log(this.toSvg());
         console.log(line.toSvg());
@@ -407,8 +445,6 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
                                this.pts[idx], this.pts[(idx+1)%this.pts.length]).toSvg('blue')));
         throw "Expected 2 line intersections when 0 point intersections. Found: " + lineIntersectionIndices;
     }
-    const i0 = lineIntersectionIndices[0];
-    const x0 = line.getIntersectionWithLine(this.pts[i0], this.pts[(i0+1)%this.pts.length]);
     const i1 = lineIntersectionIndices[1];
     const x1 = line.getIntersectionWithLine(this.pts[i1], this.pts[(i1+1)%this.pts.length]);
 
@@ -446,7 +482,7 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
   - Use an interval tree on the line segments of a to improve performance in step 1.
   - Use search structure in a to improve performance of step 2.
  */
-UTIL.cut = function(as, bs) {
+/*UTIL.cut = function(as, bs) {
     // Step 0: Get the line segments of a:
     var aSegs = [];
     as.forEach(function(a) {
@@ -491,7 +527,7 @@ UTIL.cut = function(as, bs) {
         }
         return true;
     });
-}
+    }*/
 
 UTIL.orderPathsClockwise = function(paths) {
     for(var i = 0; i < paths.length; i++) {
@@ -526,7 +562,7 @@ UTIL.orderPathsClockwise = function(paths) {
     }    
 }
 
-UTIL.Path = function(pts, color) {
+/*UTIL.Path = function(pts, color) {
     this.pts = pts;
     this.color = color;
 }
@@ -537,4 +573,4 @@ UTIL.Path.prototype.toSvg = function() {
     this.pts.forEach(p => ret += " " + p.x + "," + p.y);
     ret += 'Z"/>';
     return ret;
-}
+    }*/

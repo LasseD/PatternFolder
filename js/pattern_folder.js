@@ -32,7 +32,18 @@ UTIL.ldr2Paths = function(ldr, onWarning) {
             if(!anyNon0) {
                 header += line + '\n';
             }
+            // TODO: Restore height map from configuration if inlined.
             break;
+	case 1: // 1 <colour> ...
+            onWarning('1', 'Sub models is not currently supported! Sub model encountered on line ' + (i+1));
+            anyNon0 = true;
+	    break;
+	case 2: // 2 <colour> x1 y1 z1 x2 y2 z2
+	    var p1 = new UTIL.Point(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
+	    var p2 = new UTIL.Point(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
+            paths.push(new UTIL.CH([p1, p2].map(p => p.flipYZ()), colorID));
+            anyNon0 = true;
+	    break;
 	case 3: // 3 <colour> x1 y1 z1 x2 y2 z2 x3 y3 z3
 	    var p1 = new UTIL.Point(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
 	    var p2 = new UTIL.Point(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
@@ -56,39 +67,8 @@ UTIL.ldr2Paths = function(ldr, onWarning) {
     return [paths, header];
 }
 
-UTIL.paths2Svg = function(paths) {
-    var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE;
-    var maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
-
-    paths.forEach(path => path.pts.forEach(function(p) {
-        minX = Math.min(minX, p.x);
-        minY = Math.min(minY, p.y);
-        maxX = Math.max(maxX, p.x);
-        maxY = Math.max(maxY, p.y);
-    }));
-    var w = maxX-minX, h = maxY-minY;
-    var maxWH = Math.max(w, h);
-    if(maxWH < 400) {
-        w *= 400/maxWH;
-        h *= 400/maxWH;
-    }
-
-    var ret = '<svg width="' + w + '" height="' + h + '"';
-    ret += ' viewBox="' + minX + ' ' + minY + ' ' + (maxX-minX) + ' ' + (maxY-minY) + '"';
-    ret += ' xmlns="http://www.w3.org/2000/svg">\n';
-
-    paths.forEach(function(path) {
-        ret += '  <path d="M';
-        path.pts.forEach(p => ret += ' ' + p.x + ' ' + p.y + ' ');
-        ret += 'Z" fill="#' + LDR.Colors[path.color].value.toString(16) +'"/>\n';
-    });
-
-    ret += '</svg>';
-    return ret;
-}
-
 UTIL.paths2LDraw = function(paths, header) {
-    console.dir(paths);
+    console.dir(paths); console.log(header);
     function convert(x) {
         x = x.toFixed(UTIL.Precision);
         for(var i = 0; i < UTIL.Precision; i++) {
@@ -103,26 +83,26 @@ UTIL.paths2LDraw = function(paths, header) {
     var cnt = 0;
     var ret = header;
     function handlePath(path) {
-        if(path.pts.length > 4) { // Extract a quad:
-            var path1 = {pts:path.pts.slice(0, 4), lDrawColor:path.lDrawColor};
-            var pts2 = [ path.pts[0] ];
-            pts2.push(...path.pts.slice(3));
-            var path2 = {pts:pts2, lDrawColor:path.lDrawColor};
+        const pts = path.pts;
+        if(pts.length > 4) { // Extract a quad:
+            var path1 = {pts:pts.slice(0, 4), color:path.color};//lDrawColor:path.lDrawColor};
+            var pts2 = [ pts[0] ];
+            pts2.push(...pts.slice(3));
+            var path2 = {pts:pts2, color:path.color};//lDrawColor:path.lDrawColor};
             handlePath(path1);
             handlePath(path2);
             return;
         }
-        const pts = path.pts;
         ret += pts.length + " " + path.color;
         for(var j = 0; j < pts.length; j++) {
-            var k = path.reversed ? pts.length-1-j : j;
-            ret += " " + convert(pts[k].x) + " " + convert(pts[k].y) + " " + convert(pts[k].z);
+            var k = !path.reversed ? pts.length-1-j : j;
+            ret += " " + convert(pts[k].x) + " " + convert(pts[k].z) + " " + convert(pts[k].y);
         }
         ret += '\n';
         cnt++;
     }
     paths.forEach(handlePath);
 
-    console.log('Built lDraw file with ' + cnt + ' triangles and quads.');
+    //console.log('Built lDraw file with ' + cnt + ' primitives: ' + ret);
     return ret;
 }
