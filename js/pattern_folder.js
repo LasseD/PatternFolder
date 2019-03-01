@@ -83,6 +83,11 @@ UTIL.paths2LDraw = function(paths, header) {
     var ret = header;
     function handlePath(path) {
         const pts = path.pts;
+        if(pts.length <= 1) {
+            console.warn('Skipping degenerate point: ' + pts[0].x + ', ' + pts[0].y + ', ' + pts[0].z);
+            return;
+        }
+
         if(pts.length > 4) { // Extract a quad:
             var path1 = {pts:pts.slice(0, 4), color:path.color};//lDrawColor:path.lDrawColor};
             var pts2 = [ pts[0] ];

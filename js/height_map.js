@@ -44,17 +44,21 @@ LDR.LinearHeightMap = function(txt) {
     // Ensure 0:
     var first = this.heightPoints[0];
     var last = this.heightPoints[this.heightPoints.length-1];
+    var y0;
     if(first.x > 0) {
-        var h = [new UTIL.Point(0, first.y, 0)];
+        y0 = first.y;
+        var h = [new UTIL.Point(0, y0, 0)];
         h.push(...this.heightPoints);
         this.heightPoints = h;
         console.log("Height map before 0 - added point for 0");
     }
     else if(first.x == 0) {
-        return; // All good.
+        y0 = first.y;
+        // x-positions all good.
     }
     else if(last.x < 0) {
-        this.heightPoints.push(new UTIL.Point(0, last.y, 0));
+        y0 = last.y;
+        this.heightPoints.push(new UTIL.Point(0, y0, 0));
         console.log("Height map after 0 - added point for 0");
     }
     else { // See if 0 is found in middle:
@@ -67,16 +71,19 @@ LDR.LinearHeightMap = function(txt) {
                 continue; // Not at 0 yet.
             }
             var p1 = this.heightPoints[i-1];
-            var y = p1.y + (p2.y-p1.y)*(-p1.x)/(p2.x-p1.x);
-            console.log("Height map missing height at 0. Interpolated height added: " + y);
+            y0 = p1.y + (p2.y-p1.y)*(-p1.x)/(p2.x-p1.x);
+            console.log("Height map missing height at 0. Interpolated height added: " + y0);
 
             var h = this.heightPoints.slice(0, i);
-            h.push(new UTIL.Point(0, y, 0));
+            h.push(new UTIL.Point(0, y0, 0));
             h.push(...this.heightPoints.slice(i));
             this.heightPoints = h;
-            return; // done.
+            break; // done.
         }
     }
+
+    // Update heights to make y0 = 0:
+    this.heightPoints.forEach(p => p.y -= y0);
 }
 
 /*
@@ -84,6 +91,7 @@ LDR.LinearHeightMap = function(txt) {
   This method handles horizontal/vertical height maps and first-coordinates less than 0.
  */
 LDR.LinearHeightMap.prototype.foldPaths = function(paths) {
+    console.log('Height map at beginning of foldPaths:'); this.heightPoints.forEach(p => console.log(p.x + ' ' + p.y));
     var ret1 = this.foldPathsRightFrom0(paths); 
 
     function flipX(ps) {
@@ -123,10 +131,9 @@ LDR.LinearHeightMap.prototype.foldPaths = function(paths) {
  */
 LDR.LinearHeightMap.prototype.foldPathsRightFrom0 = function(paths) {
     const heightPoints = this.heightPoints.filter(p => p.x >= 0);
-    //heightPoints.sort((a,b) => a.x - b.x);
 
     // First cut the paths along the height map:
-    var mapLeft = new UTIL.Point(0,0,0);
+    var mapLeft = heightPoints[0];
     var origLeft = 0;
     heightPoints.forEach(function(mapRight) {
         var origRight = origLeft + mapRight.dist(mapLeft);
@@ -151,8 +158,7 @@ LDR.LinearHeightMap.prototype.foldPathsRightFrom0 = function(paths) {
     // Decorate with average x-value for quicker processing:
     paths.forEach(p => p.averageX = p.pts.map(p => p.x).reduce((a, b) => a+b) / p.pts.length);
     paths = paths.filter(p => p.averageX > 0);
-    paths.sort((a, b) => a.averageX-b.averageX);
-    //paths.forEach(path => console.log(path.toSvg()));
+    paths.sort((a, b) => a.averageX - b.averageX);
 
     // Now fold the reduced paths along the height map:
     mapLeft = new UTIL.Point(0,0,0);
@@ -160,13 +166,14 @@ LDR.LinearHeightMap.prototype.foldPathsRightFrom0 = function(paths) {
 
     var pathsIdx = 0;
     var ret = [];
-    heightPoints.forEach(function(mapRight) { // First iteration will not output anything due to the interval being 0-0.
+    for(var i = 1; i < heightPoints.length; i++) {
+        var mapRight = heightPoints[i];
         var origRight = origLeft + mapRight.dist(mapLeft);
         const mapDx = mapRight.x - mapLeft.x;
         const mapDy = mapRight.y - mapLeft.y;
         const origDx = origRight - origLeft;
 
-        for(; pathsIdx < paths.length; pathsIdx++) {
+        while(pathsIdx < paths.length) {
             var path = paths[pathsIdx];
             if(path.averageX > origRight) {
                 break;
@@ -180,11 +187,12 @@ LDR.LinearHeightMap.prototype.foldPathsRightFrom0 = function(paths) {
                 p.z += mapLeft.y + mapDy * t; // p.z was intially p.y - the height.
             });
             ret.push(path);
+            pathsIdx++;
         }
 
         origLeft = origRight;
         mapLeft = mapRight;
-    });
+    }
 
     return ret;
 }

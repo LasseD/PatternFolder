@@ -1,6 +1,7 @@
-0 TEST 2
-0 Name: test2.dat
+0 TEST 7
+0 Name: test7.dat
 0 Author: Lasse Deleuran
 0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
 0 BFC CERTIFY CCW
-2 0 200 0 0 -200 0 0
+3 1 10 0 10   -10 0 10    -10 0 -10
+3 2 -10 0 -10 10 0 -10     10 0 10

@@ -225,55 +225,6 @@ UTIL.CH.prototype.getAPointInside = function() {
     return new UTIL.Point(x, y, this.pts[0].z);
 }
 
-/*
-UTIL.CH.prototype.toLDraw = function() {
-    function convert(x) {
-        if(x == parseInt(x))
-            return x;
-        for(var i = 1; i < UTIL.Precision; i++) {
-            var tmp = x.toFixed(i);
-            if(tmp == x) {
-                return tmp; // Don't output too many '0's.
-            }
-        }
-        return x.toFixed(UTIL.Precision);
-    }
-
-    var pts = this.pts;
-    var ret = "";
-    if(this.degenerate) {
-        for(var i = 1; i < this.pts.length; i++) {
-            var p1 = pts[i-1];
-            var p2 = pts[i];
-            ret += " " + convert(p1.x) + " 0 " + convert(p1.y); // TODO
-        }
-        return ret;
-    }
-
-    do {
-        var len = Math.min(4, pts.length);
-        ret += len + " " + this.color;
-        for(var i = 0; i < len; i++) {
-            var p = pts[i];
-            ret += " " + convert(p.x) + " 0 " + convert(p.y);
-        }
-        ret += "\n";
-        pts = pts.splice(0, len);
-    }
-    while(pts.length > 0);
-
-    return ret;
-}*/
-
-/*
-UTIL.CH.prototype.toSvg = function() {
-    var ret = '--><path fill="' + this.color + '" d="M';
-
-    this.pts.forEach(p => ret += " " + p.x + "," + p.y);
-    ret += 'Z"/><!--';
-    return ret;
-}*/
-
 UTIL.CH.prototype.isInside = function(pointInside) {
     if(this.pts.length == 2) { // Check line segment:
         var p1 = this.pts[0];
@@ -292,27 +243,11 @@ UTIL.CH.prototype.isInside = function(pointInside) {
     return true;
 }
 
-/*
-UTIL.CH.prototype.isOnOrInside = function(pointInside) {
-    var prev = this.pts[this.pts.length-1];
-    for(var i = 0; i < this.pts.length; i++) {
-        var p = this.pts[i];
-        if(UTIL.leftTurn(prev, p, pointInside))
-            return false;
-        prev = p;
-    }
-    return true;
-    }*/
-
 UTIL.CH.prototype.intersectsLine = function(line) {
     var prev = this.pts[this.pts.length-1];
     for(var i = 0; i < this.pts.length; i++) {
         var p = this.pts[i];
         if(UTIL.lineIntersectsLineSegment(line, p, prev)) {
-            //console.log("CH - line intersection. Line: " + line.toSvg() + ", intersection: " + line.getIntersectionWithLine(prev, p).toSvg());
-            //console.log(prev.toSvg());
-            //console.log(p.toSvg());
-            //console.log(this.toSvg());
             return true;
         }
         prev = p;
@@ -469,66 +404,6 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
     push(pts);
 }
 
-/*
-  Assume a and b are lists of triangles and quads. 
-  The result from this function contains all parts of elements of b that do not overlap with any element from a.
-  The parts are constructed by splitting the elements of b.
-
-  This algorithm runs in 2 steps:
-  1: Split all in b by the line segments of a.
-  2: Filter the result from b and only take those not in a.
-
-  TODO: 
-  - Use an interval tree on the line segments of a to improve performance in step 1.
-  - Use search structure in a to improve performance of step 2.
- */
-/*UTIL.cut = function(as, bs) {
-    // Step 0: Get the line segments of a:
-    var aSegs = [];
-    as.forEach(function(a) {
-        var pts = a.pts;
-        var prev = pts[pts.length-1];
-        for(var i = 0; i < pts.length; i++) {
-            var p = pts[i];
-            aSegs.push(new UTIL.Line(prev, p));
-            prev = p;
-        }
-    });
-
-    // Step 1: Split b by the line segments of a:
-    var bParts = [];
-    bs.forEach(function(b) {
-        var bSet = [b];
-        // Cut bSet up for all in aSegs:
-        aSegs.forEach(function(line){
-            var nextBSet = [];
-            bSet.forEach(function(x) {
-                if(x.intersectsLineSegment(line)) {
-                    x.splitByLine(line, nextBSet);
-                }
-                else {
-                    nextBSet.push(x);
-                }
-            });
-            bSet = nextBSet;
-        });
-        bParts.push(...bSet);
-    });
-
-    // Step 2: Filter bParts by a:
-    return bParts.filter(function(b) {
-        var pointInside = b.getAPointInside();
-        for(var i = 0; i < as.length; i++) {
-            var a = as[i];
-            if(a.isInside(pointInside)) {
-                //console.log("Skip: " + b.toSvg() + " inside of " + a.toSvg());
-                return false;
-            }
-        }
-        return true;
-    });
-    }*/
-
 UTIL.orderPathsClockwise = function(paths) {
     for(var i = 0; i < paths.length; i++) {
         const path = paths[i];
@@ -552,25 +427,9 @@ UTIL.orderPathsClockwise = function(paths) {
             prev = p;
         }
 
-        //console.log('Min: ' + minX + ', ' + minY);
         if(minTurnsLeft) {
             pts.reverse();
             path.reversed = true;
-            //console.log('Flipping path ' + i + ' with ' + pts.length + ' points');
-            //console.dir(path);
         }
     }    
 }
-
-/*UTIL.Path = function(pts, color) {
-    this.pts = pts;
-    this.color = color;
-}
-
-UTIL.Path.prototype.toSvg = function() {
-    var ret = '<path fill="' + this.color + '" d="M';
-
-    this.pts.forEach(p => ret += " " + p.x + "," + p.y);
-    ret += 'Z"/>';
-    return ret;
-    }*/

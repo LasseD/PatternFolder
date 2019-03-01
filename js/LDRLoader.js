@@ -321,6 +321,7 @@ THREE.LDRLoader.prototype.parse = function(data) {
 		}
 	    }
 	    else {
+                console.warn('Adding sub model on line ' + i + ': ' + line);
 		step.addDAT(subModel); // DAT part - no step.
 	    }
 	    if(!isLDR) {
@@ -1026,6 +1027,10 @@ LDR.GeometryBuilder.prototype.build = function(toBeBuilt) {
 	child.parents[parent.ID] = parent;
     }
     function prepare(partType) {
+        if(!partType) {
+            console.dir(self.loader);
+            throw 'partType undefined!';
+        }
 	if(partType.prepared || partType.geometry)
 	    return; // Already prepared
 	partType.parents = {};
@@ -1043,6 +1048,10 @@ LDR.GeometryBuilder.prototype.build = function(toBeBuilt) {
 	    for(var k = 0; k < step.dats.length; k++) {
 		var id = step.dats[k].ID;
 		var child = self.loader.ldrPartTypes[id];
+                if(!child) {
+                    console.dir(partType);
+                    throw 'Unknown child: "' + id + '"';
+                }
 		prepare(child);
 		linkChild(partType, child);
 	    }

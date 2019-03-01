@@ -138,6 +138,7 @@ function showInScenes(ldr1, ldr2) {
 function fold(ldr) {
   //console.log('Folding ' + ldr);
   var [paths,header] = UTIL.ldr2Paths(ldr, console.warn);
+  //var map = "-20 0 20 10";
   var map = MAPS.ALL[0].toTxt();
   var mapper = new LDR.LinearHeightMap(map);
   paths = mapper.foldPaths(paths);
@@ -149,8 +150,8 @@ function fold(ldr) {
 }
 
 $(document).ready(function() {
-$('#ldr').load('./sample_files/sticker_corvette_flag.dat', fold);
-//$('#ldr').load('./sample_files/test2.dat', fold);
+//$('#ldr').load('./sample_files/sticker_corvette_flag.dat', fold);
+$('#ldr').load('./sample_files/test5.dat', fold);
 });
   </script>
  </body>
