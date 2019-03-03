@@ -91,7 +91,7 @@ LDR.LinearHeightMap = function(txt) {
   This method handles horizontal/vertical height maps and first-coordinates less than 0.
  */
 LDR.LinearHeightMap.prototype.foldPaths = function(paths) {
-    console.log('Height map at beginning of foldPaths:'); this.heightPoints.forEach(p => console.log(p.x + ' ' + p.y));
+    //console.log('Height map at beginning of foldPaths:'); this.heightPoints.forEach(p => console.log(p.x + ' ' + p.y));
     var ret1 = this.foldPathsRightFrom0(paths); 
 
     function flipX(ps) {
@@ -109,6 +109,7 @@ LDR.LinearHeightMap.prototype.foldPaths = function(paths) {
     }
 
     flipX(paths);
+    //paths.forEach(path => path.reversed = !path.reversed);
     var ret2 = this.foldPathsRightFrom0(paths);
     flipX(ret2);
     flipX(paths); // Restore.

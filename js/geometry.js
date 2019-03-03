@@ -203,19 +203,22 @@ UTIL.removeInlinePoints = function(pts) {
     return ret;
 }
 
-UTIL.CH = function(pts, color) {
+UTIL.CH = function(pts, color, reversed) {
+    if(reversed == undefined)
+        throw 'Reversed not specified';
     this.pts = UTIL.removeInlinePoints(pts);
     if(this.pts < 2) {
         throw "CH degenerates to a point!";
     }
     this.color = color;
+    this.reversed = reversed;
     //this.color = UTIL.IDX++;
 }
 
 UTIL.CH.prototype.clone = function() {
     var pts = [];
     this.pts.forEach(p => pts.push(new UTIL.Point(p.x, p.y, p.z)));
-    return new UTIL.CH(pts, this.color);
+    return new UTIL.CH(pts, this.color, this.reversed);
 }
 
 UTIL.CH.prototype.getAPointInside = function() {
@@ -273,15 +276,15 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
         return; // Adjacent corners are intersected - do not split.
     }
 
-    const color = this.color;
+    var self = this;
     function push(pts) {
-        try {
-            ret.push(new UTIL.CH(pts, color));
-        }
+        //try {
+        ret.push(new UTIL.CH(pts, self.color, self.reversed));
+            /*}
         catch(exception) {
             console.warn('Failed to create convex hull from points:');
             console.dir(pts);
-        }
+            }*/
     }
 
     if(pointIntersectionIndices.length == 2) { // Split in two or not at all
@@ -317,8 +320,7 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
     const lineIntersectionIndices = this.pts.map((p,idx,a) => 
         UTIL.lineIntersectsLineSegment(line, p, a[(idx+1)%a.length]) ? idx : -1).filter(x => x >= 0);
     if(lineIntersectionIndices.length > 2 || lineIntersectionIndices.length == 0) {
-        lineIntersectionIndices.forEach(idx => console.log(line.getIntersectionWithLine(
-                                                                                        this.pts[idx], this.pts[(idx+1)%this.pts.length]).toSvg('blue')));
+        lineIntersectionIndices.forEach(idx => console.log(line.getIntersectionWithLine(this.pts[idx], this.pts[(idx+1)%this.pts.length]).toSvg('blue')));
         throw "Expected 1-2 CH/line intersections. Found " + lineIntersectionIndices.length + " intersections!";
     }
 
@@ -370,7 +372,7 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
     const x0 = line.getIntersectionWithLine(this.pts[i0], this.pts[(i0+1)%this.pts.length]);
     if(this.pts.length == 2) { // Special case: Split line segment:
         push( [this.pts[0], x0] );
-        push( [x0, this.pts[1] ]);
+        push( [x0,this.pts[1] ]);
         return;
     }
     if(lineIntersectionIndices.length != 2) {
@@ -387,8 +389,9 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
     var idx = i1;
     do {
         idx++;
-        if(idx == this.pts.length)
+        if(idx == this.pts.length) {
             idx = 0;
+        }
         pts.push(this.pts[idx]);
     } while(idx != i0);
     push(pts);
@@ -397,8 +400,9 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
     var idx = i0;
     do {
         idx++;
-        if(idx == this.pts.length)
+        if(idx == this.pts.length) {
             idx = 0;
+        }
         pts.push(this.pts[idx]);
     } while(idx != i1);
     push(pts);
@@ -429,7 +433,7 @@ UTIL.orderPathsClockwise = function(paths) {
 
         if(minTurnsLeft) {
             pts.reverse();
-            path.reversed = true;
+            path.reversed = !path.reversed;
         }
     }    
 }

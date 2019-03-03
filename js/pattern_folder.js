@@ -41,14 +41,14 @@ UTIL.ldr2Paths = function(ldr, onWarning) {
 	case 2: // 2 <colour> x1 y1 z1 x2 y2 z2
 	    var p1 = new UTIL.Point(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
 	    var p2 = new UTIL.Point(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
-            paths.push(new UTIL.CH([p1, p2].map(p => p.flipYZ()), colorID));
+            paths.push(new UTIL.CH([p1, p2].map(p => p.flipYZ()), colorID, false));
             anyNon0 = true;
 	    break;
 	case 3: // 3 <colour> x1 y1 z1 x2 y2 z2 x3 y3 z3
 	    var p1 = new UTIL.Point(parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]));
 	    var p2 = new UTIL.Point(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
 	    var p3 = new UTIL.Point(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
-            paths.push(new UTIL.CH([p1, p2, p3].map(p => p.flipYZ()), colorID));
+            paths.push(new UTIL.CH([p1, p2, p3].map(p => p.flipYZ()), colorID, false));
             anyNon0 = true;
 	    break;
 	case 4: // 4 <colour> x1 y1 z1 x2 y2 z2 x3 y3 z3 x4 y4 z4
@@ -56,7 +56,7 @@ UTIL.ldr2Paths = function(ldr, onWarning) {
 	    var p2 = new UTIL.Point(parseFloat(parts[5]), parseFloat(parts[6]), parseFloat(parts[7]));
 	    var p3 = new UTIL.Point(parseFloat(parts[8]), parseFloat(parts[9]), parseFloat(parts[10]));
 	    var p4 = new UTIL.Point(parseFloat(parts[11]), parseFloat(parts[12]), parseFloat(parts[13]));
-            paths.push(new UTIL.CH([p1, p2, p3, p4].map(p => p.flipYZ()), colorID));
+            paths.push(new UTIL.CH([p1, p2, p3, p4].map(p => p.flipYZ()), colorID, false));
             anyNon0 = true;
 	    break;
         }
@@ -89,17 +89,17 @@ UTIL.paths2LDraw = function(paths, header) {
         }
 
         if(pts.length > 4) { // Extract a quad:
-            var path1 = {pts:pts.slice(0, 4), color:path.color};//lDrawColor:path.lDrawColor};
+            var path1 = {pts:pts.slice(0, 4), color:path.color, reversed:path.reversed};
             var pts2 = [ pts[0] ];
             pts2.push(...pts.slice(3));
-            var path2 = {pts:pts2, color:path.color};//lDrawColor:path.lDrawColor};
+            var path2 = {pts:pts2, color:path.color, reversed:path.reversed};
             handlePath(path1);
             handlePath(path2);
             return;
         }
         ret += pts.length + " " + path.color;
         for(var j = 0; j < pts.length; j++) {
-            var k = !path.reversed ? pts.length-1-j : j;
+            var k = path.reversed ? pts.length-1-j : j;
             ret += " " + convert(pts[k].x) + " " + convert(pts[k].z) + " " + convert(pts[k].y);
         }
         ret += '\n';
@@ -107,6 +107,6 @@ UTIL.paths2LDraw = function(paths, header) {
     }
     paths.forEach(handlePath);
 
-    //console.log('Built lDraw file with ' + cnt + ' primitives: ' + ret);
+    //console.log('Built lDraw file with ' + cnt + ' primitives: ' + ret); 
     return ret;
 }
