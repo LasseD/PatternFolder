@@ -41,6 +41,8 @@ LDR.LinearHeightMap = function(txt) {
 
     this.heightPoints.forEach(p => p.x += dx); // Move dx
     this.heightPoints.sort((a,b) => a.x - b.x);
+    this.heightPoints = this.heightPoints.filter((p, idx, a) => idx == 0 || a[idx-1].x != p.x);
+
     // Ensure 0:
     var first = this.heightPoints[0];
     var last = this.heightPoints[this.heightPoints.length-1];
@@ -65,7 +67,8 @@ LDR.LinearHeightMap = function(txt) {
         for(var i = 1; i < this.heightPoints.length; i++) {
             var p2 = this.heightPoints[i];
             if(p2.x == 0) {
-                return; // All good.
+                y0 = p2.y;
+                break; // All good.
             }
             if(p2.x < 0) {
                 continue; // Not at 0 yet.
@@ -91,6 +94,11 @@ LDR.LinearHeightMap = function(txt) {
   This method handles horizontal/vertical height maps and first-coordinates less than 0.
  */
 LDR.LinearHeightMap.prototype.foldPaths = function(paths) {
+    if(!this.horizontal) {
+        console.log('Flipping all points for vertical surface');
+        flipXY(paths);
+    }
+
     //console.log('Height map at beginning of foldPaths:'); this.heightPoints.forEach(p => console.log(p.x + ' ' + p.y));
     var ret1 = this.foldPathsRightFrom0(paths); 
 
@@ -103,10 +111,6 @@ LDR.LinearHeightMap.prototype.foldPaths = function(paths) {
     
     this.heightPoints.forEach(p => p.x = -p.x);
     this.heightPoints.reverse();
-    if(!this.horizontal) {
-        console.log('Flipping all points for vertical surface');
-        flipXY(paths);
-    }
 
     flipX(paths);
     //paths.forEach(path => path.reversed = !path.reversed);
@@ -114,14 +118,13 @@ LDR.LinearHeightMap.prototype.foldPaths = function(paths) {
     flipX(ret2);
     flipX(paths); // Restore.
 
-    if(!this.horizontal) {
-        flipXY(paths);
-        flipXY(ret2); // Because it was created from paths.
-    }
     this.heightPoints.forEach(p => p.x = -p.x);
     this.heightPoints.reverse();
 
     ret1.push(...ret2);
+    if(!this.horizontal) {
+        flipXY(ret1); // Because it was created from paths.
+    }
     return ret1;
 }
 

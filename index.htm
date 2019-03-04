@@ -69,6 +69,8 @@
         margin-top: 0.5em;
       }
       .map {
+        position: relative;
+        top: 0;
         display: inline-block;
         width: 100px;
         height: 100px;
@@ -77,9 +79,32 @@
         margin-bottom: 1em;
         text-align: center;
         padding-top: 0.2em;
+        border-radius: 0.5em;
       }
-      .map .title {
+      .map_active {
+        background-color: #BFB;
+      }
+      .map:hover {
+        background-color: #DFD;      
+      }
+      .title {
         display: inline;
+      }
+      .info {
+        display: inline;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+      }
+      svg {
+        position: absolute;
+        top: 0;
+        left: 2.5px;
+      }
+      polygon, line {
+        fill: #dcf0f8;
+        stroke: #98aeb9;
       }
     </style>
  </head>
@@ -115,8 +140,12 @@
     <input id="file" name="file" type="file" onchange="readFromFile(event);" />
    </span>
    <span class="choice">
-    <textarea id="file_content" onkeyup="fold(null)" rows="8">0 Or paste the content of the LDraw file here. Such as:
-2 0 -100 0 0 100 0 0
+    <textarea id="file_content" onkeyup="fold(null)" rows="8">0 Insert LDraw file content here. This is an example with two triangles: One red and one green
+0 Name: example.dat
+0 Author: Lasse Deleuran
+0 BFC CERTIFY CCW
+3 2 -10 0 10  -10 0 -10  10 0 10
+3 4 -10 0 -10  10 0 -10  10 0 10
 </textarea>
    </span>
 
@@ -138,9 +167,9 @@
    </div>
    <span class="choice">
     <textarea id="surface" onkeyup="fold(null)" rows="3"
->#Example: Horizontal height map.
+>#Example heoght map with a couple of bends.
 horizontal 0
--100 -100 -40 -30 0 0 40 30 100 100
+-15 -10 -4 -1 0 0 10 15
 </textarea>
    </span>
   </div>
@@ -219,9 +248,10 @@ function render() {
 var preview1 = document.getElementById('preview1'), preview2 = document.getElementById('preview2');
 preview1.appendChild(renderer1.domElement); preview2.appendChild(renderer2.domElement);
 
+var w, h;
 function onWindowResize(){
-  var w = window.innerHeight * 0.9;//preview1.offsetWidth*0.8;
-  var h = window.innerWidth * 0.9;//preview1.offsetHeight*0.8;
+  w = window.innerHeight * 0.9;//preview1.offsetWidth*0.8;
+  h = window.innerWidth * 0.9;//preview1.offsetHeight*0.8;
   w = h = Math.min(w, h);
   camera1.left = camera2.left = -w;
   camera1.right = camera2.right = w;
@@ -232,6 +262,7 @@ function onWindowResize(){
   render();
 }
 window.addEventListener('resize', onWindowResize, false);
+onWindowResize();
 
 // React to user input:
 var controls1 = new THREE.OrbitControls(camera1, renderer1.domElement);
@@ -277,7 +308,7 @@ function showInScenes(ldr1, ldr2) {
     baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
     //baseObject.add(new THREE.Box3Helper(b, 0xff0000)); // Uncomment if you want to see the bounding box
 
-    camera.zoom = window.innerWidth/b.min.distanceTo(b.max);
+    camera.zoom = w/b.min.distanceTo(b.max)*2;
     return baseObject;
   }
 
@@ -317,7 +348,7 @@ function fold(ldr) {
 
 function setUpMaps() {
   var mapsEle = $('#maps')[0];
-  MAPS.ALL.forEach(map => map.toEle(mapsEle, fold, 100, 100));
+  MAPS.ALL.forEach(map => map.toEle(mapsEle, fold, 95, 95));
 }
 
 function readFromFile(event) {

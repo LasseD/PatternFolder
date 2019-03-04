@@ -60,9 +60,10 @@ function render() {
 var preview1 = document.getElementById('preview1'), preview2 = document.getElementById('preview2');
 preview1.appendChild(renderer1.domElement); preview2.appendChild(renderer2.domElement);
 
+var w, h;
 function onWindowResize(){
-  var w = window.innerHeight * 0.9;//preview1.offsetWidth*0.8;
-  var h = window.innerWidth * 0.9;//preview1.offsetHeight*0.8;
+  w = window.innerHeight * 0.9;//preview1.offsetWidth*0.8;
+  h = window.innerWidth * 0.9;//preview1.offsetHeight*0.8;
   w = h = Math.min(w, h);
   camera1.left = camera2.left = -w;
   camera1.right = camera2.right = w;
@@ -73,6 +74,7 @@ function onWindowResize(){
   render();
 }
 window.addEventListener('resize', onWindowResize, false);
+onWindowResize();
 
 // React to user input:
 var controls1 = new THREE.OrbitControls(camera1, renderer1.domElement);
@@ -119,7 +121,7 @@ function showInScenes(ldr1, ldr2) {
     baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
     //baseObject.add(new THREE.Box3Helper(b, 0xff0000)); // Uncomment if you want to see the bounding box
 
-    camera.zoom = window.innerWidth/b.min.distanceTo(b.max);
+    camera.zoom = w/b.min.distanceTo(b.max)*2;
     return baseObject;
   }
 
@@ -138,8 +140,8 @@ function showInScenes(ldr1, ldr2) {
 function fold(ldr) {
   //console.log('Folding ' + ldr);
   var [paths,header] = UTIL.ldr2Paths(ldr, console.warn);
-  //var map = "-20 0 20 10";
-  var map = MAPS.ALL[0].toTxt();
+  //var map = "-10 -10    0 -10    10 -10";
+  var map = MAPS.ALL[4].toTxt();
   var mapper = new LDR.LinearHeightMap(map);
   paths = mapper.foldPaths(paths);
 
@@ -151,7 +153,7 @@ function fold(ldr) {
 
 $(document).ready(function() {
 //$('#ldr').load('./sample_files/sticker_corvette_flag.dat', fold);
-$('#ldr').load('./sample_files/test5.dat', fold);
+$('#ldr').load('./sample_files/testb.dat', fold);
 });
   </script>
  </body>
