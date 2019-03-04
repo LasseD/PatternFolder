@@ -64,18 +64,22 @@
         display: block;
         margin: auto;
       }
+
+      #maps {
+        margin-top: 0.5em;
+      }
       .map {
         display: inline-block;
         width: 100px;
         height: 100px;
-        background-color: #BFF;
+        background-color: #FFF;
         margin-right: 1em;
-        margin-top: 1em;
-      }
-      .map .title {
-        display: block;
+        margin-bottom: 1em;
         text-align: center;
         padding-top: 0.2em;
+      }
+      .map .title {
+        display: inline;
       }
     </style>
  </head>
@@ -313,15 +317,7 @@ function fold(ldr) {
 
 function setUpMaps() {
   var mapsEle = $('#maps')[0];
-  function addMap(m) {
-    var mapEle = document.createElement('span'); mapsEle.append(mapEle);
-    mapEle.setAttribute('class', 'map');
-    var titleEle = document.createElement('span'); mapEle.append(titleEle);
-    titleEle.setAttribute('class', 'title');
-    titleEle.innerHTML = m.id;
-    mapEle.addEventListener('click', function(){$('#surface').val(m.toTxt()); fold();});
-  }
-  MAPS.ALL.forEach(addMap);
+  MAPS.ALL.forEach(map => map.toEle(mapsEle, fold, 100, 100));
 }
 
 function readFromFile(event) {

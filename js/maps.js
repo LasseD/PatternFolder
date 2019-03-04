@@ -33,7 +33,39 @@ MAPS.Mapping.prototype.toTxt = function() {
     return ret;
 }
 
+MAPS.Mapping.prototype.toEle = function(parent, fold, w, h) {
+    var mapEle = document.createElement('span'); parent.append(mapEle);
+    mapEle.setAttribute('class', 'map');
+    var titleEle = document.createElement('span'); mapEle.append(titleEle);
+    titleEle.setAttribute('class', 'title');
+    titleEle.innerHTML = this.id;
+    const self = this;
+    mapEle.addEventListener('click', function(){$('#surface').val(self.toTxt()); fold();});
+
+    // Make svg:
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); mapEle.appendChild(svg);
+    svg.setAttribute('width', w);
+    svg.setAttribute('height', h);
+    var pts = [];
+    this.heights.forEach(function(h, idx) {
+            if(idx%2 == 0) { pts.push({x:h}); } 
+            else { pts[(idx-1)/2].y = h }
+        });
+    pts.sort((a, b) => a.x - b.x);
+    var minX = pts[0].x;
+    var scale = w / (pts[pts.length-1].x - minX)
+    pts.forEach(function(p) { // Change coordinates:
+            p.x = (p.x-minX) * scale;
+            p.y *= scale;
+        });
+    console.dir(pts);
+}
+
 MAPS.ALL = [
-            new MAPS.Mapping('11477', MAPS.make11477(1, 0, 1, 0), true, 0),
-            new MAPS.Mapping('11477 pair - 3 spacers', MAPS.make11477Pair(3), true, 0),
+            new MAPS.Mapping('11477 LEFT', MAPS.make11477(1, 0, 1, 0), true, 0),
+            new MAPS.Mapping('11477 RIGHT', MAPS.make11477(-1, 0, 1, 0), true, 0),
+            new MAPS.Mapping('2 x 11477', MAPS.make11477Pair(0), true, 0),
+            new MAPS.Mapping('2 x 11477 + 1', MAPS.make11477Pair(1), true, 0),
+            new MAPS.Mapping('2 x 11477 + 2', MAPS.make11477Pair(2), true, 0),
+            new MAPS.Mapping('2 x 11477 + 3', MAPS.make11477Pair(3), true, 0),
             ];
