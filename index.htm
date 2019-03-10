@@ -200,6 +200,11 @@ function resetWarningsAndErrors() {
   seenWarningTypes = {};
 }
 function onWarning(type, message) {
+  if(type.hasOwnProperty('message')) { // From parser:
+    message = type['message'] + ' Line ' + type['line'];
+    type = 'parse error';
+  }
+
   console.warn(message);
   if(seenWarningTypes.hasOwnProperty(type)) {
     return; // Already seen.
