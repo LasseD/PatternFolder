@@ -140,8 +140,8 @@ function showInScenes(ldr1, ldr2) {
 function fold(ldr) {
   //console.log('Folding ' + ldr);
   var [paths,header] = UTIL.ldr2Paths(ldr, console.warn);
-  //var map = "-10 -10    0 -10    10 -10";
-  var map = MAPS.ALL[4].toTxt();
+  var map = "-4 -8 -3 -7    0 0    3 -1";
+  //var map = MAPS.ALL[4].toTxt();
   var mapper = new LDR.LinearHeightMap(map);
   paths = mapper.foldPaths(paths);
 
