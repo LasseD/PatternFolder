@@ -134,7 +134,7 @@ LDR.LinearHeightMap.prototype.foldPaths = function(paths) {
   Return a list of UTIL.CH objects folded onto the height map.
  */
 LDR.LinearHeightMap.prototype.foldPathsRightFrom0 = function(paths) {
-    const heightPoints = this.heightPoints.filter(p => p.x >= 0);
+    const heightPoints = this.heightPoints.filter(p => p.x >= 0).map(p => p.clone());
 
     // First cut the paths along the height map:
     var mapLeft = heightPoints[0];
@@ -164,14 +164,14 @@ LDR.LinearHeightMap.prototype.foldPathsRightFrom0 = function(paths) {
     paths = paths.filter(p => p.averageX > 0);
     paths.sort((a, b) => a.averageX - b.averageX);
 
-    // Add an additional height point to ensure no cutoffs:
+    // Move last height point to ensure no cutoffs:
     if(paths.length > 0 && heightPoints.length >= 2) {
         var map1 = heightPoints[heightPoints.length-2], map2 = heightPoints[heightPoints.length-1];
         var extraX = 2 * Math.max(paths[paths.length-1].pts.map(p => p.x).reduce((a, b) => a > b ? a : b), map1.x);
 
         var extraY = map2.y + (map2.y-map1.y)*(extraX-map2.x)/(map2.x-map1.x);
-        heightPoints.push(new UTIL.Point(extraX, extraY, 0));
-        console.log('Extra point added at ' + extraX + ', ' + extraY);
+        map2.x = extraX;
+        map2.y = extraY;
     }
 
     // Now fold the reduced paths along the height map:
