@@ -18,9 +18,23 @@ MAPS.make50950 = function(scaleX, addX, scaleY, addY) {
     return ret.map((v, idx) => idx%2==0 ? scaleX*v+addX : scaleY*v+addY);
 }
 
+MAPS.make54200 = function(scaleX, addX, scaleY, addY) {
+    var ret = [-30, 8,
+               -10, -4,
+               10, -16
+               ];
+    return ret.map((v, idx) => idx%2==0 ? scaleX*v+addX : scaleY*v+addY);
+}
+
 MAPS.make11477Pair = function(spacers) {
     var ret = MAPS.make11477(1, -10*spacers-20, 1, 0);
     ret.push(...MAPS.make11477(-1, 10*spacers+20, 1, 0));
+    return ret;
+}
+
+MAPS.make54200Pair = function(spacers) {
+    var ret = MAPS.make54200(1, -10*spacers-10, 1, 0);
+    ret.push(...MAPS.make54200(-1, 10*spacers+10, 1, 0));
     return ret;
 }
 
@@ -115,17 +129,27 @@ MAPS.Mapping.prototype.toEle = function(parent, fold, w, h) {
 }
 
 MAPS.ALL = [
-            new MAPS.Mapping('11477', MAPS.make11477(1, 0, 1, 0), true, 0),
-            new MAPS.Mapping('11477', MAPS.make11477(1, 0, 1, 0), false, 0),
-            new MAPS.Mapping('11477', MAPS.make11477(-1, 0, 1, 0), true, 0),
-            new MAPS.Mapping('11477', MAPS.make11477(-1, 0, 1, 0), false, 0),
-            new MAPS.Mapping('93273', MAPS.make11477Pair(0), true, 0),
-            new MAPS.Mapping('93273', MAPS.make11477Pair(0), false, 0),
-            new MAPS.Mapping('2 x 11477 + 1', MAPS.make11477Pair(1), true, 0),
-            new MAPS.Mapping('2 x 11477 + 2', MAPS.make11477Pair(2), true, 0),
-            new MAPS.Mapping('2 x 11477 + 3', MAPS.make11477Pair(3), true, 0),
-            new MAPS.Mapping('50950', MAPS.make50950(1, 0, 1, 0), true, 0),
-            new MAPS.Mapping('50950', MAPS.make50950(1, 0, 1, 0), false, 0),
-            new MAPS.Mapping('50950', MAPS.make50950(-1, 0, 1, 0), true, 0),
-            new MAPS.Mapping('50950', MAPS.make50950(-1, 0, 1, 0), false, 0),
-            ];
+    new MAPS.Mapping('11477 (1x2 curved slope)', MAPS.make11477(1, 0, 1, 0), true, 0),
+    new MAPS.Mapping('11477', MAPS.make11477(1, 0, 1, 0), false, 0),
+    new MAPS.Mapping('11477', MAPS.make11477(-1, 0, 1, 0), true, 0),
+    new MAPS.Mapping('11477', MAPS.make11477(-1, 0, 1, 0), false, 0),
+    new MAPS.Mapping('93273', MAPS.make11477Pair(0), true, 0),
+    new MAPS.Mapping('93273', MAPS.make11477Pair(0), false, 0),
+    new MAPS.Mapping('2 x 11477 + 1', MAPS.make11477Pair(1), true, 0),
+    new MAPS.Mapping('2 x 11477 + 2', MAPS.make11477Pair(2), true, 0),
+    new MAPS.Mapping('2 x 11477 + 3', MAPS.make11477Pair(3), true, 0),
+    new MAPS.Mapping('50950 (1x3 curved slope)', MAPS.make50950(1, 0, 1, 0), true, 0),
+    new MAPS.Mapping('50950', MAPS.make50950(1, 0, 1, 0), false, 0),
+    new MAPS.Mapping('50950', MAPS.make50950(-1, 0, 1, 0), true, 0),
+    new MAPS.Mapping('50950', MAPS.make50950(-1, 0, 1, 0), false, 0),
+    
+    new MAPS.Mapping('4 x 54200 (cheese slopes)', MAPS.make54200Pair(0), true, 0),
+    new MAPS.Mapping('4 x 54200 + 1', MAPS.make54200Pair(0), false, 0),
+    new MAPS.Mapping('4 x 54200', MAPS.make54200Pair(1), true, 0),
+    new MAPS.Mapping('4 x 54200 + 1', MAPS.make54200Pair(1), false, 0),
+    
+    new MAPS.Mapping('2 x Wedge 2 x 3', [-60, 20, 0, 0, 60, 20], true, 0),
+    new MAPS.Mapping('2 x Wedge 2 x 3', [-60, 20, 0, 0, 60, 20], false, 0),
+    new MAPS.Mapping('2 x Wedge 2 x 4', [-80, 20, 0, 0, 80, 20], true, 0),
+    new MAPS.Mapping('2 x Wedge 2 x 4', [-80, 20, 0, 0, 80, 20], false, 0),
+];
