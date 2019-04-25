@@ -28,6 +28,13 @@ UTIL.Point.prototype.clone = function() {
     return new UTIL.Point(this.x, this.y, this.z);
 }
 
+UTIL.Point.prototype.flipXY = function() {
+    var tmp = this.x;
+    this.x = this.y;
+    this.y = tmp;
+    return this;
+}
+
 UTIL.Point.prototype.flipYZ = function() {
     var tmp = this.z;
     this.z = this.y;
