@@ -16,49 +16,41 @@ UTIL.isZero = function(x) {
   - Line (p1, p2) can represent both a line segment and a line.
   - CH (Convex hull)
  */
-UTIL.Point = function(x, y, z) {
-    if(z == undefined)
-        throw "Points must be in 3D space in this project";
-    this.x = x;
-    this.y = y;
-    this.z = z;
-}
+/*THREE.Vector3.prototype.clone = function() {
+    return new THREE.Vector3(this.x, this.y, this.z);
+}*/
 
-UTIL.Point.prototype.clone = function() {
-    return new UTIL.Point(this.x, this.y, this.z);
-}
-
-UTIL.Point.prototype.flipXY = function() {
+THREE.Vector3.prototype.flipXY = function() {
     var tmp = this.x;
     this.x = this.y;
     this.y = tmp;
     return this;
 }
 
-UTIL.Point.prototype.flipYZ = function() {
+THREE.Vector3.prototype.flipYZ = function() {
     var tmp = this.z;
     this.z = this.y;
     this.y = tmp;
     return this;
 }
 
-UTIL.Point.prototype.toSvg = function(color) {
+THREE.Vector3.prototype.toSvg = function(color) {
     return '--><circle ' + (color?'fill="'+color+'"':'') +' r="1" cx="' + this.x + '" cy="' + this.y + '"/><!--';
 }
 
-UTIL.Point.prototype.equals = function(other) {
+THREE.Vector3.prototype.equals = function(other) {
     return UTIL.isZero(this.x - other.x) && UTIL.isZero(this.y - other.y) && UTIL.isZero(this.z - other.z);
 }
 
-UTIL.Point.prototype.sub = function(p) {
-    return new UTIL.Point(this.x-p.x, this.y-p.y, this.z-p.z);
+THREE.Vector3.prototype.sub = function(p) {
+    return new THREE.Vector3(this.x-p.x, this.y-p.y, this.z-p.z);
 }
 
-UTIL.Point.prototype.add = function(p) {
-    return new UTIL.Point(this.x+p.x, this.y+p.y, this.z+p.z);
+THREE.Vector3.prototype.add = function(p) {
+    return new THREE.Vector3(this.x+p.x, this.y+p.y, this.z+p.z);
 }
 
-UTIL.Point.prototype.dist = function(p) {
+THREE.Vector3.prototype.dist = function(p) {
     var dx = this.x-p.x, dy = this.y-p.y, dz = this.z-p.z;
     return Math.sqrt(dx*dx + dy*dy + dz*dz);
 }
@@ -118,8 +110,8 @@ UTIL.Line.prototype.intersectsPointOnSegment = function(p) {
 
     // Check if p is between p1 and p2:
     const dx = this.p2.x - this.p1.x, dy = this.p2.y = this.p1.y;
-    const p3 = new UTIL.Point(this.p1.x + dy, this.p1.y + dx, 0);
-    const p4 = new UTIL.Point(this.p2.x + dy, this.p2.y + dx, 0);
+    const p3 = new THREE.Vector3(this.p1.x + dy, this.p1.y + dx, 0);
+    const p4 = new THREE.Vector3(this.p2.x + dy, this.p2.y + dx, 0);
 
     return !(UTIL.leftTurn(p3, this.p1, p) || UTIL.rightTurn(p4, this.p2, p));
 }
@@ -128,7 +120,7 @@ UTIL.Line.prototype.getCenterPoint = function() {
     var x = (this.p1.x+this.p2.x)*0.5;
     var y = (this.p1.y+this.p2.y)*0.5;
     var z = (this.p1.z+this.p2.z)*0.5;
-    return new UTIL.Point(x, y, z);
+    return new THREE.Vector3(x, y, z);
 }
 
 // Stolen from: http://www.cs.swan.ac.uk/~cssimon/line_intersection.html
@@ -139,7 +131,7 @@ UTIL.Line.prototype.getIntersectionWithLine = function(p1, p2) {
     //const t = ((y1-y2)*(x3-x1)+(x2-x1)*(y3-y1)) / ((x2-x1)*(y3-y4)-(x3-x4)*(y2-y1));
     const x = x1 + t*(x2-x1);
     const y = y1 + t*(y2-y1);
-    return new UTIL.Point(x, y, p1.z);
+    return new THREE.Vector3(x, y, p1.z);
 }
 
 UTIL.lineSegmentsIntersect = function(l1, l2) {
@@ -221,7 +213,7 @@ UTIL.CH = function(pts, color, reversed) {
 
 UTIL.CH.prototype.clone = function() {
     var pts = [];
-    this.pts.forEach(p => pts.push(new UTIL.Point(p.x, p.y, p.z)));
+    this.pts.forEach(p => pts.push(new THREE.Vector3(p.x, p.y, p.z)));
     return new UTIL.CH(pts, this.color, this.reversed);
 }
 
@@ -229,7 +221,7 @@ UTIL.CH.prototype.getAPointInside = function() {
     // Simply return the centroid:
     var x = this.pts.map(p => p.x).reduce((sum, x) => x+sum)/this.pts.length;
     var y = this.pts.map(p => p.y).reduce((sum, y) => y+sum)/this.pts.length;
-    return new UTIL.Point(x, y, this.pts[0].z);
+    return new THREE.Vector3(x, y, this.pts[0].z);
 }
 
 UTIL.CH.prototype.isInside = function(pointInside) {

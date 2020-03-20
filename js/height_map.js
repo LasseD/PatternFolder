@@ -1,5 +1,44 @@
 'use strict';
 
+UTIL.paths2LDraw = function(paths, step, tmp) {
+    function convert(x) {
+        x = x.toFixed(UTIL.Precision);
+        for(var i = 0; i < UTIL.Precision; i++) {
+            var tmp = parseFloat(x).toFixed(i);
+            if(parseFloat(tmp) == parseFloat(x)) {
+                return tmp; // Don't output too many '0's.
+            }
+        }
+        return x;
+    }
+
+    var cnt = 0;
+    function handlePath(path) {
+        const pts = path.pts;
+        if(pts.length <= 1) {
+            console.warn('Skipping degenerate point: ' + pts[0].x + ', ' + pts[0].y + ', ' + pts[0].z);
+        }
+	else if(pts.length === 2) {
+	    step.addLine(path.color, pts[0], pts[1]);
+	}
+	else if(pts.length === 3) {
+	    step.addTrianglePoints(path.color, pts[0], pts[1], pts[2], tmp);
+	}
+	else if(pts.length === 4) {
+	    step.addQuadPoints(path.color, pts[0], pts[1], pts[2], pts[3], tmp);
+	}
+	else {
+            var path1 = {pts:pts.slice(0, 4), color:path.color, reversed:path.reversed};
+            var pts2 = [ pts[0] ];
+            pts2.push(...pts.slice(3));
+            var path2 = {pts:pts2, color:path.color, reversed:path.reversed};
+            handlePath(path1);
+            handlePath(path2);
+	}
+    }
+    paths.forEach(handlePath);
+}
+
 /*
   Assumes txt is formatted as follows:
   - Any empty line, or line starting with '#' is ignored
@@ -34,7 +73,7 @@ LDR.LinearHeightMap = function(txt) {
             }
             else {
                 var x = parseFloat(parts[j]), y = parseFloat(parts[j+1]);
-                this.heightPoints.push(new UTIL.Point(x, y, 0));
+                this.heightPoints.push(new THREE.Vector3(x, y, 0));
             }
         }
     }
@@ -49,7 +88,7 @@ LDR.LinearHeightMap = function(txt) {
     var y0;
     if(first.x > 0) {
         y0 = first.y;
-        var h = [new UTIL.Point(0, y0, 0)];
+        var h = [new THREE.Vector3(0, y0, 0)];
         h.push(...this.heightPoints);
         this.heightPoints = h;
         console.log("Height map before 0 - added point for 0");
@@ -60,7 +99,7 @@ LDR.LinearHeightMap = function(txt) {
     }
     else if(last.x < 0) {
         y0 = last.y;
-        this.heightPoints.push(new UTIL.Point(0, y0, 0));
+        this.heightPoints.push(new THREE.Vector3(0, y0, 0));
         console.log("Height map after 0 - added point for 0");
     }
     else { // See if 0 is found in middle:
@@ -78,7 +117,7 @@ LDR.LinearHeightMap = function(txt) {
             console.log("Height map missing height at 0. Interpolated height added: " + y0);
 
             var h = this.heightPoints.slice(0, i);
-            h.push(new UTIL.Point(0, y0, 0));
+            h.push(new THREE.Vector3(0, y0, 0));
             h.push(...this.heightPoints.slice(i));
             this.heightPoints = h;
             break; // done.
@@ -89,19 +128,65 @@ LDR.LinearHeightMap = function(txt) {
     this.heightPoints.forEach(p => p.y -= y0);
 }
 
+LDR.LinearHeightMap.prototype.foldPart = function(part) {
+    let self = this;
+    part.steps.forEach(step => self.foldStep(step));
+}
+
+LDR.LinearHeightMap.prototype.foldStep = function(step) {
+    let self = this;
+
+    // Lines, and non-texmapped triangles and quads:
+    let paths1 = [];
+    step.lines.forEach(x => paths1.push(new UTIL.CH([x.p1, x.p2].map(p => p.flipYZ()), x.colorID, false)));
+    step.triangles.filter(x => !x.texmapPlacement).forEach(x => paths1.push(new UTIL.CH([x.p1, x.p2, x.p3].map(p => p.flipYZ()), x.colorID, false)));
+    step.quads.filter(x => !x.texmapPlacement).forEach(x => paths1.push(new UTIL.CH([x.p1, x.p2, x.p3, x.p4].map(p => p.flipYZ()), x.colorID, false)));
+    UTIL.orderPathsClockwise(paths1);
+    
+    // Texmapped triangles and quads:
+    let paths2 = {}; // tmp => [paths]
+    let tmps = [];
+    function register(tmp, ch) {
+	if(!paths2.hasOwnProperty(tmp.ID)) {
+	    paths2[tmp.ID] = [];
+	    tmps.push(tmp);
+	}
+	paths2[tmp.ID].push(ch);
+    }
+    step.triangles.filter(x => x.texmapPlacement).forEach(x => register(x.texmapPlacement, new UTIL.CH([x.p1, x.p2, x.p3].map(p => p.flipYZ()), x.colorID, false)));
+    step.quads.filter(x => x.texmapPlacement).forEach(x => register(x.texmapPlacement, new UTIL.CH([x.p1, x.p2, x.p3, x.p4].map(p => p.flipYZ()), x.colorID, false)));    
+    step.lines = [];
+    step.triangles = [];
+    step.quads = [];
+
+    // Fold all but conditional lines:
+    paths1 = this.foldPaths(paths1);
+    UTIL.paths2LDraw(paths1, step);
+    
+    tmps.forEach(tmp => {
+	let paths = paths2[tmp.ID];
+	UTIL.orderPathsClockwise(paths);
+	paths = self.foldPaths(paths);
+	UTIL.paths2LDraw(paths, step, tmp);
+    });
+
+    // Conditional lines:
+    let newConditionalLines = [];
+    step.conditionalLines.forEach(line => {
+	let paths = UTIL.paths2LDraw([new UTIL.CH([line.p1, line.p2].map(p => p.flipYZ()), line.colorID, false)], step);
+	paths = self.foldPaths(paths);
+	let ghost = {lines:[]};
+	UTIL.paths2LDraw(paths, ghost);
+	ghost.lines.forEach(l => newConditionalLines.push({colorID:l.colorID, p1:l.p1, p2:l.p2, p3:line.p2, p4:line.p4}));
+    });
+    step.conditionalLines = newConditionalLines;
+}
+
 /*
   Fold all paths, using (0,0) as anchor point.
   This method handles horizontal/vertical height maps and first-coordinates less than 0.
  */
 LDR.LinearHeightMap.prototype.foldPaths = function(paths) {
-    if(!this.horizontal) {
-        console.log('Flipping all points for vertical surface');
-        flipXY(paths);
-    }
-
-    //console.log('Height map at beginning of foldPaths:'); this.heightPoints.forEach(p => console.log(p.x + ' ' + p.y));
-    var ret1 = this.foldPathsRightFrom0(paths); 
-
     function flipX(ps) {
         ps.forEach(path => path.pts.forEach(p => p.x = -p.x));        
     }
@@ -109,6 +194,14 @@ LDR.LinearHeightMap.prototype.foldPaths = function(paths) {
         ps.forEach(path => path.pts.forEach(p => p.flipXY()));
     }
     
+    if(!this.horizontal) {
+        console.log('Flipping all points for vertical surface');
+        flipXY(paths);
+    }
+
+    //console.log('Height map at beginning of foldPaths:'); this.heightPoints.forEach(p => console.log(p.x + ' ' + p.y));
+    var ret = this.foldPathsRightFrom0(paths);
+
     this.heightPoints.forEach(p => p.x = -p.x);
     this.heightPoints.reverse();
 
@@ -121,11 +214,12 @@ LDR.LinearHeightMap.prototype.foldPaths = function(paths) {
     this.heightPoints.forEach(p => p.x = -p.x);
     this.heightPoints.reverse();
 
-    ret1.push(...ret2);
+    ret.push(...ret2);
+
     if(!this.horizontal) {
-        flipXY(ret1); // Because it was created from paths.
+        flipXY(ret); // Because it was created from paths.
     }
-    return ret1;
+    return ret;
 }
 
 /*
@@ -141,7 +235,7 @@ LDR.LinearHeightMap.prototype.foldPathsRightFrom0 = function(paths) {
     var origLeft = 0;
     heightPoints.forEach(function(mapRight) {
         var origRight = origLeft + mapRight.dist(mapLeft);
-        var line = new UTIL.Line(new UTIL.Point(origRight, 1, 0), new UTIL.Point(origRight, -1, 0));
+        var line = new UTIL.Line(new THREE.Vector3(origRight, 1, 0), new THREE.Vector3(origRight, -1, 0));
 
         // Cut all:
         var newPaths = [];
@@ -175,7 +269,7 @@ LDR.LinearHeightMap.prototype.foldPathsRightFrom0 = function(paths) {
     }
 
     // Now fold the reduced paths along the height map:
-    mapLeft = new UTIL.Point(0,0,0);
+    mapLeft = new THREE.Vector3(0,0,0);
     origLeft = 0;
 
     var pathsIdx = 0;
@@ -216,13 +310,13 @@ LDR.LinearHeightMap.prototype.foldPathsRightFrom0 = function(paths) {
  */
 LDR.LinearHeightMap.prototype.toLDR = function() {
     if(this.heightPoints.length == 0) {
-        return new LDR.LinearHeightMap([new UTIL.Point(-1, 0, 0), new UTIL.Point(1, 0, 0)]).toLdr(); // Avoid empty renderer.
+        return new LDR.LinearHeightMap([new THREE.Vector3(-1, 0, 0), new THREE.Vector3(1, 0, 0)]).toLdr(); // Avoid empty renderer.
     }
     const COLOR = " 39";
     var horizontal = this.horizontal;
     var ret = '\n';
     // Find min:
-    var h = this.heightPoints.map(p => new UTIL.Point(p.x, p.y + 0.5, p.z));
+    var h = this.heightPoints.map(p => new THREE.Vector3(p.x, p.y + 0.5, p.z));
 
     var minY = Math.max(...h.map(p => p.y));
     function put(x, y, low) {
