@@ -16,9 +16,9 @@ UTIL.isZero = function(x) {
   - Line (p1, p2) can represent both a line segment and a line.
   - CH (Convex hull)
  */
-/*THREE.Vector3.prototype.clone = function() {
+THREE.Vector3.prototype.cloneInline = function() {
     return new THREE.Vector3(this.x, this.y, this.z);
-}*/
+}
 
 THREE.Vector3.prototype.flipXY = function() {
     var tmp = this.x;
@@ -44,10 +44,6 @@ THREE.Vector3.prototype.equals = function(other) {
 
 THREE.Vector3.prototype.sub = function(p) {
     return new THREE.Vector3(this.x-p.x, this.y-p.y, this.z-p.z);
-}
-
-THREE.Vector3.prototype.add = function(p) {
-    return new THREE.Vector3(this.x+p.x, this.y+p.y, this.z+p.z);
 }
 
 THREE.Vector3.prototype.dist = function(p) {
@@ -200,8 +196,6 @@ UTIL.removeInlinePoints = function(pts) {
 }
 
 UTIL.CH = function(pts, color, reversed) {
-    if(reversed == undefined)
-        throw 'Reversed not specified';
     this.pts = UTIL.removeInlinePoints(pts);
     if(this.pts < 2) {
         throw "CH degenerates to a point!";

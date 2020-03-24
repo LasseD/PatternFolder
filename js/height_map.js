@@ -1,18 +1,8 @@
 'use strict';
 
 UTIL.paths2LDraw = function(paths, step, tmp) {
-    function convert(x) {
-        x = x.toFixed(UTIL.Precision);
-        for(var i = 0; i < UTIL.Precision; i++) {
-            var tmp = parseFloat(x).toFixed(i);
-            if(parseFloat(tmp) == parseFloat(x)) {
-                return tmp; // Don't output too many '0's.
-            }
-        }
-        return x;
-    }
+    paths.forEach(path => path.pts.forEach(p => p.flipYZ()));
 
-    var cnt = 0;
     function handlePath(path) {
         const pts = path.pts;
         if(pts.length <= 1) {
@@ -22,10 +12,10 @@ UTIL.paths2LDraw = function(paths, step, tmp) {
 	    step.addLine(path.color, pts[0], pts[1]);
 	}
 	else if(pts.length === 3) {
-	    step.addTrianglePoints(path.color, pts[0], pts[1], pts[2], tmp);
+	    step.addTriangle(path.color, pts[0], pts[1], pts[2], false, false, tmp);
 	}
 	else if(pts.length === 4) {
-	    step.addQuadPoints(path.color, pts[0], pts[1], pts[2], pts[3], tmp);
+	    step.addQuad(path.color, pts[0], pts[1], pts[2], pts[3], false, false, tmp);
 	}
 	else {
             var path1 = {pts:pts.slice(0, 4), color:path.color, reversed:path.reversed};
@@ -137,49 +127,48 @@ LDR.LinearHeightMap.prototype.foldStep = function(step) {
     let self = this;
 
     // Lines, and non-texmapped triangles and quads:
-    let paths1 = [];
-    step.lines.forEach(x => paths1.push(new UTIL.CH([x.p1, x.p2].map(p => p.flipYZ()), x.colorID, false)));
-    step.triangles.filter(x => !x.texmapPlacement).forEach(x => paths1.push(new UTIL.CH([x.p1, x.p2, x.p3].map(p => p.flipYZ()), x.colorID, false)));
-    step.quads.filter(x => !x.texmapPlacement).forEach(x => paths1.push(new UTIL.CH([x.p1, x.p2, x.p3, x.p4].map(p => p.flipYZ()), x.colorID, false)));
-    UTIL.orderPathsClockwise(paths1);
+    let pathsWithoutTexmaps = [];
+    step.lines.forEach(x => pathsWithoutTexmaps.push(new UTIL.CH([x.p1, x.p2].map(p => p.flipYZ()), x.c, false)));
+    step.triangles.filter(x => !x.tmp).forEach(x => pathsWithoutTexmaps.push(new UTIL.CH([x.p1, x.p2, x.p3].map(p => p.flipYZ()), x.c, false)));
+    step.quads.filter(x => !x.tmp).forEach(x => pathsWithoutTexmaps.push(new UTIL.CH([x.p1, x.p2, x.p3, x.p4].map(p => p.flipYZ()), x.c, false)));
+    // We know that there are no subModels in step, so they are not to be handled.
+    UTIL.orderPathsClockwise(pathsWithoutTexmaps);
     
     // Texmapped triangles and quads:
-    let paths2 = {}; // tmp => [paths]
+    let pathsWithTexmaps = {}; // tmp.idx => [paths]
     let tmps = [];
     function register(tmp, ch) {
-	if(!paths2.hasOwnProperty(tmp.ID)) {
-	    paths2[tmp.ID] = [];
+	if(!pathsWithTexmaps.hasOwnProperty(tmp.idx)) {
+	    pathsWithTexmaps[tmp.idx] = [];
 	    tmps.push(tmp);
 	}
-	paths2[tmp.ID].push(ch);
+	pathsWithTexmaps[tmp.idx].push(ch);
     }
-    step.triangles.filter(x => x.texmapPlacement).forEach(x => register(x.texmapPlacement, new UTIL.CH([x.p1, x.p2, x.p3].map(p => p.flipYZ()), x.colorID, false)));
-    step.quads.filter(x => x.texmapPlacement).forEach(x => register(x.texmapPlacement, new UTIL.CH([x.p1, x.p2, x.p3, x.p4].map(p => p.flipYZ()), x.colorID, false)));    
+    step.triangles.filter(x => x.tmp).forEach(x => register(x.tmp, new UTIL.CH([x.p1, x.p2, x.p3].map(p => p.flipYZ()), x.c, false)));
+    step.quads.filter(x => x.tmp).forEach(x => register(x.tmp, new UTIL.CH([x.p1, x.p2, x.p3, x.p4].map(p => p.flipYZ()), x.c, false)));    
     step.lines = [];
     step.triangles = [];
     step.quads = [];
 
     // Fold all but conditional lines:
-    paths1 = this.foldPaths(paths1);
-    UTIL.paths2LDraw(paths1, step);
+    pathsWithoutTexmaps = this.foldPaths(pathsWithoutTexmaps);
+    UTIL.paths2LDraw(pathsWithoutTexmaps, step);
     
     tmps.forEach(tmp => {
-	let paths = paths2[tmp.ID];
+	let paths = pathsWithTexmaps[tmp.idx];
 	UTIL.orderPathsClockwise(paths);
 	paths = self.foldPaths(paths);
 	UTIL.paths2LDraw(paths, step, tmp);
     });
 
-    // Conditional lines:
-    let newConditionalLines = [];
+    // Convert conditional lines:
+    let ghostStep = new THREE.LDRStep();
     step.conditionalLines.forEach(line => {
-	let paths = UTIL.paths2LDraw([new UTIL.CH([line.p1, line.p2].map(p => p.flipYZ()), line.colorID, false)], step);
-	paths = self.foldPaths(paths);
-	let ghost = {lines:[]};
-	UTIL.paths2LDraw(paths, ghost);
-	ghost.lines.forEach(l => newConditionalLines.push({colorID:l.colorID, p1:l.p1, p2:l.p2, p3:line.p2, p4:line.p4}));
+        let ch = new UTIL.CH([line.p1, line.p2].map(p => p.flipYZ()), line.c, false); // Original line, no p3/p4
+	let paths = self.foldPaths([ch]);
+        UTIL.paths2LDraw(paths, ghostStep);
     });
-    step.conditionalLines = newConditionalLines;
+    step.conditionalLines = ghostStep.conditionalLines;
 }
 
 /*
@@ -228,18 +217,18 @@ LDR.LinearHeightMap.prototype.foldPaths = function(paths) {
   Return a list of UTIL.CH objects folded onto the height map.
  */
 LDR.LinearHeightMap.prototype.foldPathsRightFrom0 = function(paths) {
-    const heightPoints = this.heightPoints.filter(p => p.x >= 0).map(p => p.clone());
+    const heightPoints = this.heightPoints.filter(p => p.x >= 0).map(p => p.cloneInline());
 
     // First cut the paths along the height map:
     var mapLeft = heightPoints[0];
     var origLeft = 0;
-    heightPoints.forEach(function(mapRight) {
+    heightPoints.forEach(mapRight => {
         var origRight = origLeft + mapRight.dist(mapLeft);
         var line = new UTIL.Line(new THREE.Vector3(origRight, 1, 0), new THREE.Vector3(origRight, -1, 0));
 
         // Cut all:
         var newPaths = [];
-        paths.forEach(function(path) {
+        paths.forEach(path => {
             if(path.intersectsLine(line)) {
                 path.splitByLine(line, newPaths);
             }
@@ -312,7 +301,7 @@ LDR.LinearHeightMap.prototype.toLDR = function() {
     if(this.heightPoints.length == 0) {
         return new LDR.LinearHeightMap([new THREE.Vector3(-1, 0, 0), new THREE.Vector3(1, 0, 0)]).toLdr(); // Avoid empty renderer.
     }
-    const COLOR = " 39";
+    const COLOR = " 16";
     var horizontal = this.horizontal;
     var ret = '\n';
     // Find min:

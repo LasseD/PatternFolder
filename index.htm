@@ -2,7 +2,7 @@
 <html>
  <head>
     <meta charset=utf-8>
-    <title>Pattern Folder - Fold LDraw stickers and prints</title>
+    <title>Pattern Folder - Fold LDraw parts</title>
     <meta name="viewport" content="width=device-width" />
     <style>
       body {
@@ -110,26 +110,30 @@
     </style>
  </head>
  <body>
-  <script src="js/three.min.js"></script>
-  <script src="js/OrbitControls.js"></script>
-  <script src="js/jquery.min.js"></script>
-  <script src="js/colors.js"></script>
-  <script src="js/geometry.js"></script>
-  <script src="js/height_map.js"></script>
-  <script src="js/pattern_folder.js"></script>
-  <script src="js/LDROptions.js"></script>
-  <script src="js/LDRShaders.js"></script>
-  <script src="js/LDRColorMaterials.js"></script>
-  <script src="js/LDRGeometries.js"></script>
-  <script src="js/LDRLoader.js"></script>
-  <script src="js/maps.js"></script>
-  
-  <h1>Pattern Folder - Fold LDraw stickers and prints</h1>
+  <!-- Standard libraries -->
+  <script src="../js/jquery.min.js"></script>
+  <script src="../js/three.min.js"></script>
+  <script src="../js/OrbitControls.js"></script>
 
-  <h3>Step 1 - sticker/print</h3>
+  <!-- Libraries from buildinginstructions.js -->
+  <script src="../js/colors.js"></script>
+  <script src="../js/LDROptions.js"></script>
+  <script src="../js/LDRShaders.js"></script>
+  <script src="../js/LDRColorMaterials.js"></script>
+  <script src="../js/LDRGeometries.js"></script>
+  <script src="../js/LDRLoader.js"></script>
+
+  <!-- Custom Pattern Folder libraries -->  
+  <script src="../js/geometry.js"></script>
+  <script src="../js/height_map.js"></script>
+  <script src="../js/maps.js"></script>
+
+  <h1>Pattern Folder - Fold LDraw parts</h1>
+
+  <h3>Step 1 - Select part to fold</h3>
   <div class="section">
    <span class="desc">
-     Select the LDraw pattern which represents either a sticker or a print.
+     Select the LDraw part.
      This can be done using either a URL, a file, or by pasting the content into the text area below. See the tutorial <a href="https://www.youtube.com/watch?v=fwN1MLaxats">here</a>.
    </span>
    <span class="choice">
@@ -137,26 +141,38 @@
     <input id="url" name="url" type="text" onchange="readFromUrl(event);" />
    </span>
    <span class="choice">
-    <label for="file">DAT or LDR file on your device</label>
+    <label for="file">DAT, LDR, or MPD file on your device</label>
     <input id="file" name="file" type="file" onchange="readFromFile(event);" />
    </span>
    <span class="choice">
-    <textarea id="file_content" onkeyup="fold(null)" rows="8">0 Insert LDraw file content here. This is an example with two triangles: One red and one green
-0 Name: example.dat
-0 Author: Lasse Deleuran
-0 BFC CERTIFY CCW
+    <textarea id="file_content" onkeyup="fold(null)" rows="8">
+0 Insert LDraw file content here. This is an example with two triangles.
 3 2 -10 0 10  -10 0 -10  10 0 10
 3 4 -10 0 -10  10 0 -10  10 0 10
-</textarea>
+    </textarea>
    </span>
+<!--
+0 FILE sample_file.ldr
+0 Name: sample_file.ldr
+0 BFC NOCERTIFY
 
+0 !TEXMAP START PLANAR -10 0 -10 10 0 -10 -10 0 10 sample_file.ldr.png
+0 !: 4 16 -10 0 -10 -10 0 10 10 0 10 10 0 -10
+0 !TEXMAP END
+
+0 FILE sample_file.ldr.png
+0 !DATA START
+0 !:iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA
+0 !:B3RJTUUH5AEYChQ1nEYzVAAAAB1pVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVBkLmUH
+0 !:AAAAFklEQVQI12N4KqUh5fWUQcrr6VMpDQAiEgThLKLB4AAAAABJRU5ErkJggg==
+0 !DATA END
+
+
+-->
    <div id="warnings">
    </div>
    <div id="errors">
    </div>
-
-   <div id="preview1"></div>
-  </div>
 
   <h3>Step 2 - Surface</h3>
   <div class="section">
@@ -177,7 +193,7 @@ horizontal 0
 
   <h3>Step 3 - Get the result</h3>
   <div class="section">
-   <div id="preview2"></div>
+   <canvas id="preview"></canvas>
    <span class="choice">
      <textarea id="ldr_result" rows="10"></textarea>
      <button onclick="copyToClipboard();">Copy LDraw File to Clipboard</button>
@@ -194,7 +210,7 @@ horizontal 0
 /*
   Warnings and errors:
  */
-var seenWarningTypes = {};
+let seenWarningTypes = {};
 function resetWarningsAndErrors() {
   $('#warnings').empty();
   $('#errors').empty();
@@ -213,7 +229,7 @@ function onWarning(type, message) {
 
   message = message.replace('<', '&lt;');
 
-  var span = document.createElement('span');
+  let span = document.createElement('span');
   span.setAttribute('class', 'warning');
   span.innerHTML = message;
   $('#warnings').append(span);
@@ -221,110 +237,144 @@ function onWarning(type, message) {
   seenWarningTypes[type] = true;
 }
 function onError(message) {
-  var span = document.createElement('span');
+  console.dir(message);
+  let span = document.createElement('span');
   span.setAttribute('class', 'error');
-  span.innerHTML = message;
+  span.innerHTML = message.message;
   $('#errors').empty().append(span);
 }
 
 /*
   three.js rendering:
  */
-var ldrOptions = new LDR.Options(); // Determine how to show lines. Change this in sample_instruction.htm
+let ldrOptions = new LDR.Options(); // Determine how to show lines. Change this in sample_instruction.htm
 
 // Set up camera:
-var camera1 = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
-var camera2 = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
-camera1.position.set(10000, 7000, 10000); camera2.position.set(10000, 7000, 10000);
-camera1.lookAt(new THREE.Vector3()); camera2.lookAt(new THREE.Vector3());
+let camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+camera.position.set(10000, 7000, 10000);
+camera.lookAt(0, 0, 0);
 
 // Set up scene:
-var scene1 = new THREE.Scene(), scene2 = new THREE.Scene(); // Original and folded.
-scene1.background = scene2.background = new THREE.Color(0xFFFFFF);
-var baseObject1, baseObject2;
+let scene = new THREE.Scene();
+scene.background = new THREE.Color(0xFFFFFF);
+let baseObject;
 
 // Set up renderer:
-var renderer1 = new THREE.WebGLRenderer({antialias: true}), renderer2 = new THREE.WebGLRenderer({antialias: true});
-renderer1.setPixelRatio(window.devicePixelRatio); renderer2.setPixelRatio(window.devicePixelRatio);
+let canvas = document.getElementById('preview');
+let renderer = new THREE.WebGLRenderer({antialias:true, canvas:canvas});
+renderer.setPixelRatio(window.devicePixelRatio);
+
 function render() {
-  renderer1.render(scene1, camera1);
-  renderer2.render(scene2, camera2);
+  renderer.render(scene, camera);
 }
 
-var preview1 = document.getElementById('preview1'), preview2 = document.getElementById('preview2');
-preview1.appendChild(renderer1.domElement); preview2.appendChild(renderer2.domElement);
-
-var w, h;
-function onWindowResize(){
-  w = window.innerHeight * 0.9;//preview1.offsetWidth*0.8;
-  h = window.innerWidth * 0.9;//preview1.offsetHeight*0.8;
+let w, h;
+function onWindowResize() {
+  w = window.innerHeight * 0.9;
+  h = window.innerWidth * 0.9;
   w = h = Math.min(w, h);
-  camera1.left = camera2.left = -w;
-  camera1.right = camera2.right = w;
-  camera1.top = camera2.top = h;
-  camera1.bottom = camera2.bottom = -h;
-  camera1.updateProjectionMatrix(); camera2.updateProjectionMatrix();
-  renderer1.setSize(w, h); renderer2.setSize(w, h);
+  camera.left = -w;
+  camera.right = w;
+  camera.top = h;
+  camera.bottom = -h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
   render();
 }
 window.addEventListener('resize', onWindowResize, false);
 onWindowResize();
 
-// React to user input:
-var controls1 = new THREE.OrbitControls(camera1, renderer1.domElement);
-var controls2 = new THREE.OrbitControls(camera2, renderer2.domElement);
-controls1.addEventListener('change', render); controls2.addEventListener('change', render);
+let ldrLoader, mapper;
+const MAIN_MODEL = 'pattern_folder_main.ldr';
 
 // Used for setting up models in scenes:
-var origo = new THREE.Vector3();
-var inv = new THREE.Matrix3(); inv.set(1,0,0, 0,-1,0, 0,0,-1); // Invert Y, and Z-axis for LDraw
-
-function showInScenes(ldr1, ldr2) {
-  //console.log("Setting up scene for LDR: '" + ldr1 + ldr2 + "'");
-
-  function showInScene(ldr, scene, camera, baseObject) {
-    var ldrLoader = new THREE.LDRLoader(function(){}, {onError:onError, onWarning:onWarning});
-    ldrLoader.parse(ldr);
-    if(!ldrLoader.mainModel) {
-      console.log('A valid model was not parsed. Nothing will be shown');
-      return baseObject;
-    }
-    var mainModel = ldrLoader.ldrPartTypes[ldrLoader.mainModel]; // Main model from the LDraw file (first model encountered)
-    var geometryBuilder = new LDR.GeometryBuilder(ldrLoader, {});
-    geometryBuilder.build([mainModel]);
-    
-    if(baseObject) {
-      scene.remove(baseObject);
-    }
-    baseObject = new THREE.Group();
-    scene.add(baseObject);
-
-    var opaqueObj = new THREE.Group();
-    baseObject.add(opaqueObj);
-    var transObj = new THREE.Group();
-    baseObject.add(transObj);
-
-    var mc = new LDR.MeshCollector(opaqueObj, transObj);
-    mainModel.generateThreePart(ldrLoader, 16, origo, inv, true, false, mc);
-
-    // Find center of drawn model:
-    var b = mc.boundingBox;
-    var elementCenter = new THREE.Vector3();
-    b.getCenter(elementCenter);
-    baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
-    //baseObject.add(new THREE.Box3Helper(b, 0xff0000)); // Uncomment if you want to see the bounding box
-
-    camera.zoom = w/b.min.distanceTo(b.max)*2;
-    return baseObject;
+function showInScene() {
+  if(!ldrLoader.mainModel) {
+    console.log('A valid model was not parsed. Nothing will be shown');
+    return;
   }
 
-  // First handle preview:
-  baseObject1 = showInScene(ldr1, scene1, camera1, baseObject1);
+  // Restructure ldrLoader:
+  let newMainModel = new THREE.LDRPartType();
+  newMainModel.ID = newMainModel.name = MAIN_MODEL;
+  let step = new THREE.LDRStep();
+  let p = new THREE.Vector3();
+  let r = new THREE.Matrix3(); r.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
+  step.addSubModel(new THREE.LDRPartDescription(16, p, r, ldrLoader.mainModel, true, false));
+  step.addSubModel(new THREE.LDRPartDescription(39, p, r, 'height_map.ldr', true, false));
+  newMainModel.addStep(step);
+  ldrLoader.partTypes[MAIN_MODEL] = newMainModel;
+  ldrLoader.mainModel = MAIN_MODEL;
+  ldrLoader.parse(mapper.toLDR(), 'height_map.ldr');
 
-  // Then the folded model:
-  baseObject2 = showInScene(ldr2, scene2, camera2, baseObject2);
+  if(baseObject) {
+    scene.remove(baseObject);
+  }
+  baseObject = new THREE.Group();
+  scene.add(baseObject);
+
+  let opaqueObj = new THREE.Group();
+  let sixteenObj = new THREE.Group();
+  let transObj = new THREE.Group();
+  baseObject.add(opaqueObj);
+  baseObject.add(sixteenObj);
+  baseObject.add(transObj);
+
+  let mc = new LDR.MeshCollector(opaqueObj, sixteenObj, transObj);
+  ldrLoader.generate(16, mc);
+
+  // Find center of drawn model:
+  let b = mc.boundingBox;
+  let elementCenter = new THREE.Vector3();
+  b.getCenter(elementCenter);
+  baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+
+  camera.zoom = w/b.min.distanceTo(b.max)*2;
 
   onWindowResize();
+}
+
+let idToUrl = id => ['ldraw_parts/'+id.toLowerCase(), 'ldraw_unofficial'+id.toLowerCase()];
+
+THREE.LDRPartType.prototype.inline = function(loader) {
+  if(this.inlined) {
+    return; // Already inlined.
+  }
+  let self = this;
+  this.inlined = true;
+
+  for(let i = 0; i < this.steps.length; i++) {
+    let step = this.steps[i];
+
+    function handleSubModel(sm) {
+      let pt = loader.getPartType(sm.ID);
+      pt.inline();
+      function c(color) {
+        if(color === 16) {
+          return sm.c;
+        }
+        if(color === 24) {
+          return sm.c < 0 ? sm.c : -sm.c-1;
+        }
+        return c;
+      }
+      function t(p) {
+  	let ret = new THREE.Vector3(p.x, p.y, p.z);
+	ret.applyMatrix3(sm.r);
+	ret.add(sm.p);
+	return ret;
+      }
+      console.log('STEP:');
+      console.dir(step);
+      let step2 = pt.steps[0];
+      step2.lines.forEach(x => step.addLine(c(x.c), t(x.p1), t(x.p2)));
+      step2.conditionalLines.forEach(x => step.addConditionalLine(c(x.c), t(x.p1), t(x.p2), t(x.p3), t(x.p4)));
+      step2.triangles.forEach(x => step.addTriangle(c(x.c), t(x.p1), t(x.p2), t(x.p3), true, false, self.texmapPlacement));
+      step2.quads.forEach(x => step.addQuad(c(x.c), t(x.p1), t(x.p2), t(x.p3), t(x.p4), true, false, self.texmapPlacement));
+    }
+    step.subModels.forEach(handleSubModel);
+    step.subModels = [];
+  }
 }
 
 /*
@@ -340,25 +390,35 @@ function fold(ldr) {
     $('#file_content').val(ldr);
   }
 
-  var [paths,header] = UTIL.ldr2Paths(ldr, onWarning);
+  function onLoad() {
+    // Split the main model:
+    let mainModel = ldrLoader.getMainModel();
+    mainModel.inline(ldrLoader);
+    ldrLoader.partTypes = {};
+    ldrLoader.partTypes[mainModel.ID] = mainModel; // Remove everything else.
 
-  // Get heightPoints from text area:
-  var mapper = new LDR.LinearHeightMap($('#surface')[0].value);
-  paths = mapper.foldPaths(paths);
+    // Get heightPoints from text area:
+    mapper = new LDR.LinearHeightMap($('#surface')[0].value);
+    mapper.foldPart(mainModel);
 
-  // LDraw content:
-  var lDrawContent = UTIL.paths2LDraw(paths, header);
-  $('#ldr_result').val(lDrawContent);
-  showInScenes(ldr, lDrawContent + mapper.toLDR());
+    let lDrawContent = ldrLoader.toLDR();
+    $('#ldr_result').val(lDrawContent);
+
+    showInScene();
+  }
+
+  ldrLoader = new THREE.LDRLoader(onLoad, null, {idToUrl:idToUrl, onError:onError, onWarning:onWarning, onProgress:render, saveFileLines:false});
+  ldrLoader.parse(ldr, 'main.dat');
+  ldrLoader.reportProgress('main.dat');
 }
 
 function setUpMaps() {
-  var mapsEle = $('#maps')[0];
+  let mapsEle = $('#maps')[0];
   MAPS.ALL.forEach(map => map.toEle(mapsEle, fold, 195, 95));
 }
 
 function readFromFile(event) {
-  var reader = new FileReader();
+  let reader = new FileReader();
   reader.onload = function(){
     fold(reader.result);
   };
@@ -366,9 +426,9 @@ function readFromFile(event) {
 }
 
 function readFromUrl(event) {
-  var url = event.target.value;
+  let url = event.target.value;
   console.log('Reading from URL ' + url);
-  var req = new XMLHttpRequest();
+  let req = new XMLHttpRequest();
   req.onreadystatechange = function() {
     if(req.readyState != 4)
       return;
@@ -387,10 +447,13 @@ function copyToClipboard() {
   document.execCommand('copy');
 }
 
-$(document).ready(function() {
+let controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.addEventListener('change', render);
+
+//$(document).ready(function() {
   setUpMaps();
   fold();
-});
+//});
   </script>
  </body>
 </html>

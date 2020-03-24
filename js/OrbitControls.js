@@ -72,12 +72,12 @@ THREE.OrbitControls = function ( object, domElement ) {
 	this.enableKeys = true;
 
 	// The four arrow keys
-        this.keys = {
+    this.keys = {};/*
   	  LEFT: 65, // A
 	  UP: 87, // W
 	  RIGHT: 68, // D
 	  BOTTOM: 83 // S
-        }
+        }*/
 	//this.keys = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40 };
 
 	// Mouse buttons
@@ -392,8 +392,12 @@ THREE.OrbitControls = function ( object, domElement ) {
 			}
 
 		};
-
 	}();
+        this.pan = pan;
+
+        this.raise = function(amount) {
+            
+        }
 
 	this.dollyIn = function( dollyScale ) {
 
@@ -683,9 +687,10 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	    var element = scope.domElement;
 
-	    var div = scope.object.zoom * element.clientWidth;
-	    panLeft(x*(scope.object.right-scope.object.left)/div, scope.object.matrix);
-	    panUp(y*(scope.object.top-scope.object.bottom)/div, scope.object.matrix);
+	    var divW = scope.object.zoom * element.clientWidth;
+	    var divH = scope.object.zoom * element.clientHeight;
+	    panUp(y*(scope.object.top-scope.object.bottom)/divH, scope.object.matrix);
+	    panLeft(x*(scope.object.right-scope.object.left)/divW, scope.object.matrix);
 
 	    scope.quickUpdate();
         }

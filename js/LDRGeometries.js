@@ -66,7 +66,7 @@ LDR.LDRGeometry = function() {
     this.lineColorManager;
     this.lineGeometry;
     this.triangleGeometries = {}; // c -> geometry
-    this.texmapGeometries = {}; // texmapID -> [{colorID,geometry}] Populated with one geometry pr TEXMAP START command.
+    this.texmapGeometries = {}; // texmapID -> [{c,g}] Populated with one geometry pr TEXMAP START command.
     this.conditionalLineGeometry;
     this.geometriesBuilt = false;
     this.boundingBox = new THREE.Box3();
@@ -312,7 +312,7 @@ LDR.LDRGeometry.prototype.buildTexmapGeometriesForColor = function(c) {
         if(!self.texmapGeometries.hasOwnProperty(texmapPlacement.idx)) {
             self.texmapGeometries[texmapPlacement.idx] = [];
         }
-        self.texmapGeometries[texmapPlacement.idx].push({colorID:c, geometry:g});
+        self.texmapGeometries[texmapPlacement.idx].push({c:c, g:g});
     }
 }
 
@@ -871,17 +871,17 @@ LDR.LDRGeometry.prototype.fromLines = function(ps) {
     let vertices = [];
     for(let i = 0; i < ps.length; i++) {
 	let p = ps[i], idx;
-	if(this.lines.hasOwnProperty(p.colorID)) {
-	    let t = this.lines[p.colorID];
+	if(this.lines.hasOwnProperty(p.c)) {
+	    let t = this.lines[p.c];
 	    idx = t.length;
 	    t.push({});
 	}
 	else {
-	    this.lines[p.colorID] = [{}];
+	    this.lines[p.c] = [{}];
 	    idx = 0;
 	}
-	vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.colorID, idx:idx, p:1},
-		      {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.colorID, idx:idx, p:2});
+	vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.c, idx:idx, p:1},
+		      {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.c, idx:idx, p:2});
         this.boundingBox.expandByPoint(p.p1);
         this.boundingBox.expandByPoint(p.p2);
     }
@@ -892,19 +892,19 @@ LDR.LDRGeometry.prototype.fromConditionalLines = function(ps) {
     let vertices = [];
     for(let i = 0; i < ps.length; i++) {
 	let p = ps[i], idx;
-	if(this.conditionalLines.hasOwnProperty(p.colorID)) {
-	    let t = this.conditionalLines[p.colorID];
+	if(this.conditionalLines.hasOwnProperty(p.c)) {
+	    let t = this.conditionalLines[p.c];
 	    idx = t.length;
 	    t.push({});
 	}
 	else {
-	    this.conditionalLines[p.colorID] = [{}];
+	    this.conditionalLines[p.c] = [{}];
 	    idx = 0;
 	}
-	vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.colorID, idx:idx, p:1},
-		      {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.colorID, idx:idx, p:2},
-		      {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.colorID, idx:idx, p:3},
-		      {x:p.p4.x, y:p.p4.y, z:p.p4.z, c:p.colorID, idx:idx, p:4});
+	vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.c, idx:idx, p:1},
+		      {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.c, idx:idx, p:2},
+		      {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.c, idx:idx, p:3},
+		      {x:p.p4.x, y:p.p4.y, z:p.p4.z, c:p.c, idx:idx, p:4});
         this.boundingBox.expandByPoint(p.p1);
         this.boundingBox.expandByPoint(p.p2);
     }
@@ -917,18 +917,18 @@ LDR.LDRGeometry.prototype.fromTriangles = function(cull, ps) {
     let self = this;
     ps.forEach(p => {
             let idx;
-            if(triangles.hasOwnProperty(p.colorID)) {
-                let t = triangles[p.colorID];
+            if(triangles.hasOwnProperty(p.c)) {
+                let t = triangles[p.c];
                 idx = t.length;
                 t.push({});
             }
             else {
-                triangles[p.colorID] = [{}];
+                triangles[p.c] = [{}];
                 idx = 0;
             }
-            vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.colorID, idx:idx, p:1, t:p.texmapPlacement},
-                          {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.colorID, idx:idx, p:2, t:p.texmapPlacement},
-                          {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.colorID, idx:idx, p:3, t:p.texmapPlacement});
+            vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.c, idx:idx, p:1, t:p.tmp},
+                          {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.c, idx:idx, p:2, t:p.tmp},
+                          {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.c, idx:idx, p:3, t:p.tmp});
             self.boundingBox.expandByPoint(p.p1);
             self.boundingBox.expandByPoint(p.p2);
             self.boundingBox.expandByPoint(p.p3);
@@ -942,19 +942,19 @@ LDR.LDRGeometry.prototype.fromQuads = function(cull, ps) {
     let self = this;
     ps.forEach(p => {
             let idx;
-            if(quads.hasOwnProperty(p.colorID)) {
-                let t = quads[p.colorID];
+            if(quads.hasOwnProperty(p.c)) {
+                let t = quads[p.c];
                 idx = t.length;
                 t.push({});
             }
             else {
-                quads[p.colorID] = [{}];
+                quads[p.c] = [{}];
                 idx = 0;
             }
-            vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.colorID, idx:idx, p:1, t:p.texmapPlacement},
-                          {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.colorID, idx:idx, p:2, t:p.texmapPlacement},
-                          {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.colorID, idx:idx, p:3, t:p.texmapPlacement},
-                          {x:p.p4.x, y:p.p4.y, z:p.p4.z, c:p.colorID, idx:idx, p:4, t:p.texmapPlacement});
+            vertices.push({x:p.p1.x, y:p.p1.y, z:p.p1.z, c:p.c, idx:idx, p:1, t:p.tmp},
+                          {x:p.p2.x, y:p.p2.y, z:p.p2.z, c:p.c, idx:idx, p:2, t:p.tmp},
+                          {x:p.p3.x, y:p.p3.y, z:p.p3.z, c:p.c, idx:idx, p:3, t:p.tmp},
+                          {x:p.p4.x, y:p.p4.y, z:p.p4.z, c:p.c, idx:idx, p:4, t:p.tmp});
             self.boundingBox.expandByPoint(p.p1);
             self.boundingBox.expandByPoint(p.p2);
             self.boundingBox.expandByPoint(p.p3);
