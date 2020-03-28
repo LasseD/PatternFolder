@@ -163,11 +163,12 @@ LDR.LinearHeightMap.prototype.foldStep = function(step) {
 
     // Convert conditional lines:
     let ghostStep = new THREE.LDRStep();
+    /*
     step.conditionalLines.forEach(line => {
         let ch = new UTIL.CH([line.p1, line.p2].map(p => p.flipYZ()), line.c, false); // Original line, no p3/p4
 	let paths = self.foldPaths([ch]);
         UTIL.paths2LDraw(paths, ghostStep);
-    });
+        });*/
     step.conditionalLines = ghostStep.conditionalLines;
 }
 
@@ -237,7 +238,7 @@ LDR.LinearHeightMap.prototype.foldPathsRightFrom0 = function(paths) {
             }
         });
         paths = newPaths;
-
+        
         origLeft = origRight;
         mapLeft = mapRight;
     });
@@ -263,7 +264,7 @@ LDR.LinearHeightMap.prototype.foldPathsRightFrom0 = function(paths) {
 
     var pathsIdx = 0;
     var ret = [];
-    for(var i = 1; i < heightPoints.length; i++) {
+    for(var i = 1; i < heightPoints.length; i++) { // Walk along the height graph:
         var mapRight = heightPoints[i];
         var origRight = origLeft + mapRight.dist(mapLeft);
         const mapDx = mapRight.x - mapLeft.x;

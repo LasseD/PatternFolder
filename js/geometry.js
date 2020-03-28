@@ -121,13 +121,14 @@ UTIL.Line.prototype.getCenterPoint = function() {
 
 // Stolen from: http://www.cs.swan.ac.uk/~cssimon/line_intersection.html
 UTIL.Line.prototype.getIntersectionWithLine = function(p1, p2) {
-    const x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y;
+    const x1 = p1.x, y1 = p1.y, z1 = p1.z, x2 = p2.x, y2 = p2.y, z2 = p2.z;
     const x3 = this.p1.x, y3 = this.p1.y, x4 = this.p2.x, y4 = this.p2.y;
     const t = ((y3-y4)*(x1-x3)+(x4-x3)*(y1-y3)) / ((x4-x3)*(y1-y2)-(x1-x2)*(y4-y3)); // segment between t=0 and t=1
     //const t = ((y1-y2)*(x3-x1)+(x2-x1)*(y3-y1)) / ((x2-x1)*(y3-y4)-(x3-x4)*(y2-y1));
     const x = x1 + t*(x2-x1);
     const y = y1 + t*(y2-y1);
-    return new THREE.Vector3(x, y, p1.z);
+    const z = z1 + t*(z2-z1);
+    return new THREE.Vector3(x, y, z);
 }
 
 UTIL.lineSegmentsIntersect = function(l1, l2) {
@@ -248,6 +249,14 @@ UTIL.CH.prototype.intersectsLine = function(line) {
     return this.isInside(line.getCenterPoint());
 }
 
+UTIL.CH.prototype.toSvg = function() {
+    var ret = '--><path fill="' + LDR.Colors.int2Hex(LDR.Colors.getColorHex(this.color)) + '" d="M';
+
+    this.pts.forEach(p => ret += " " + p.x + "," + p.y);
+    ret += 'Z"/><!--';
+    return ret;
+}
+
 /*
   Assert the line already splits the CH.
  */
@@ -268,13 +277,7 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
 
     var self = this;
     function push(pts) {
-        //try {
         ret.push(new UTIL.CH(pts, self.color, self.reversed));
-            /*}
-        catch(exception) {
-            console.warn('Failed to create convex hull from points:');
-            console.dir(pts);
-            }*/
     }
 
     if(pointIntersectionIndices.length == 2) { // Split in two or not at all
@@ -307,10 +310,11 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
         return;
     }
 
-    const lineIntersectionIndices = this.pts.map((p,idx,a) => 
-        UTIL.lineIntersectsLineSegment(line, p, a[(idx+1)%a.length]) ? idx : -1).filter(x => x >= 0);
+    const lineIntersectionIndices = this.pts.map((p,idx,a) => UTIL.lineIntersectsLineSegment(line, p, a[(idx+1)%a.length]) ? idx : -1).filter(x => x >= 0);
     if(lineIntersectionIndices.length > 2 || lineIntersectionIndices.length == 0) {
         lineIntersectionIndices.forEach(idx => console.log(line.getIntersectionWithLine(this.pts[idx], this.pts[(idx+1)%this.pts.length]).toSvg('blue')));
+        console.dir(this.pts);
+        console.dir(line);
         throw "Expected 1-2 CH/line intersections. Found " + lineIntersectionIndices.length + " intersections!";
     }
 

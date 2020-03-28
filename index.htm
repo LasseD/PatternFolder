@@ -141,7 +141,7 @@
     <input id="url" name="url" type="text" onchange="readFromUrl(event);" />
    </span>
    <span class="choice">
-    <label for="file">DAT, LDR, or MPD file on your device</label>
+    <label for="file">DAT, LDR, or MPD file</label>
     <input id="file" name="file" type="file" onchange="readFromFile(event);" />
    </span>
    <span class="choice">
@@ -152,6 +152,16 @@
     </textarea>
    </span>
 <!--
+1 4 0 -24 0 1 0 0 0 1 0 0 0 1 4070.dat
+
+
+
+0 Insert LDraw file content here. This is an example with two triangles.
+0 3 2 -10 0 10  -10 0 -10  10 0 10
+0 3 4 -10 0 -10  10 0 -10  10 0 10
+
+
+
 0 FILE sample_file.ldr
 0 Name: sample_file.ldr
 0 BFC NOCERTIFY
@@ -166,8 +176,6 @@
 0 !:B3RJTUUH5AEYChQ1nEYzVAAAAB1pVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVBkLmUH
 0 !:AAAAFklEQVQI12N4KqUh5fWUQcrr6VMpDQAiEgThLKLB4AAAAABJRU5ErkJggg==
 0 !DATA END
-
-
 -->
    <div id="warnings">
    </div>
@@ -334,7 +342,7 @@ function showInScene() {
   onWindowResize();
 }
 
-let idToUrl = id => ['ldraw_parts/'+id.toLowerCase(), 'ldraw_unofficial'+id.toLowerCase()];
+let idToUrl = id => ['../bi/ldraw_parts/'+id.toLowerCase(), '../bi/ldraw_unofficial'+id.toLowerCase()];
 
 THREE.LDRPartType.prototype.inline = function(loader) {
   if(this.inlined) {
@@ -348,7 +356,7 @@ THREE.LDRPartType.prototype.inline = function(loader) {
 
     function handleSubModel(sm) {
       let pt = loader.getPartType(sm.ID);
-      pt.inline();
+      pt.inline(loader);
       function c(color) {
         if(color === 16) {
           return sm.c;
@@ -356,7 +364,7 @@ THREE.LDRPartType.prototype.inline = function(loader) {
         if(color === 24) {
           return sm.c < 0 ? sm.c : -sm.c-1;
         }
-        return c;
+        return color;
       }
       function t(p) {
   	let ret = new THREE.Vector3(p.x, p.y, p.z);
@@ -364,8 +372,7 @@ THREE.LDRPartType.prototype.inline = function(loader) {
 	ret.add(sm.p);
 	return ret;
       }
-      console.log('STEP:');
-      console.dir(step);
+
       let step2 = pt.steps[0];
       step2.lines.forEach(x => step.addLine(c(x.c), t(x.p1), t(x.p2)));
       step2.conditionalLines.forEach(x => step.addConditionalLine(c(x.c), t(x.p1), t(x.p2), t(x.p3), t(x.p4)));

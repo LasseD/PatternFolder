@@ -249,7 +249,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
             texmapPlacement = null;
         }
 
-	//console.log("Parsing line " + i + " of type " + lineType + ', color ' + colorID + ": " + line); // Useful if you encounter parse errors.
+	//console.log('Parsing line', i, 'of type', lineType, 'color', colorID, ':', line); // Useful if you encounter parse errors.
 
 	let l3 = parts.length >= 3;
 	let is = type => l3 && type === parts[1];
@@ -592,7 +592,7 @@ THREE.LDRLoader.prototype.parse = function(data, defaultID) {
         // Do not call storage.db.close() as there might be other parts that should be saved.
     }
 
-    //console.log(loadedParts.length + " LDraw file(s) read in " + (new Date()-parseStartTime) + "ms.");
+    //console.log(loadedParts.length + ' LDraw file(s) read in ' + (new Date()-parseStartTime) + 'ms.');
 };
 
 THREE.LDRLoader.prototype.loadTexmaps = function() {
@@ -742,6 +742,7 @@ THREE.LDRLoader.prototype.toLDR = function() {
 
     // Part types:
     let ret = this.getMainModel().toLDR(this);
+
     this.applyOnPartTypes(pt => {
             if(!(pt.inlined || pt.ID === self.mainModel || pt.isOfficialLDraw())) {
                 ret += pt.toLDR(self);
@@ -1447,8 +1448,10 @@ THREE.LDRStep.prototype.toLDR = function(loader, prevStepRotation, isLastStep) {
         }
     }
     this.subModels.forEach(output);
+    this.lines.forEach(output);
     this.triangles.forEach(output);
     this.quads.forEach(output);
+    this.conditionalLines.forEach(output);
 
     // End with STEP or ROTSTEP:
     if(!this.rotation) {
@@ -1882,6 +1885,7 @@ THREE.LDRLoader.prototype.purgePart = function(ID) {
         }
         purged[id] = true;
         
+        console.warn('Purging '+id);
         delete this.partTypes[id];
 
         function handle(pt) {
