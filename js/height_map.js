@@ -2,6 +2,7 @@
 
 UTIL.paths2LDraw = function(paths, step, tmp) {
     paths.forEach(path => path.pts.forEach(p => p.flipYZ()));
+    paths.forEach(path => path.pts = path.reversed ? path.pts.reverse() : path.pts);
 
     function handlePath(path) {
         const pts = path.pts;
