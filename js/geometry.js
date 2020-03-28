@@ -223,7 +223,12 @@ UTIL.CH.prototype.isInside = function(pointInside) {
     if(this.pts.length == 2) { // Check line segment:
         var p1 = this.pts[0];
         var p2 = this.pts[1];
-        return new UTIL.Line(p1, p2).intersectsPointOnSegment(pointInside);
+        if(p1.equals(p2)) {
+            return p1.equals(pointInside);
+        }
+        else {
+            return new UTIL.Line(p1, p2).intersectsPointOnSegment(pointInside);
+        }
     }
 
     var prev = this.pts[this.pts.length-1];
