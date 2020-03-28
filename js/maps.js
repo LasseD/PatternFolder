@@ -48,6 +48,16 @@ MAPS.make54200Pair = function(spacers) {
     return ret;
 }
 
+MAPS.makeCyli = function(radius, sections) {
+    let ret = [];
+    for(let i = 0; i < sections; i++) {
+        let angle = Math.PI*(1+i/sections);
+        ret.push(radius*Math.cos(angle), radius*Math.sin(angle));
+    }
+    ret.push(radius, 0);
+    return ret;
+}
+
 MAPS.CNT = 0;
 
 MAPS.Mapping = function(title, heights, horizontal, dx) {
@@ -170,4 +180,9 @@ MAPS.ALL = [
     new MAPS.Mapping('2 x Wedge 2 x 3', [-60, 20, 0, 0, 60, 20], false, 0),
     new MAPS.Mapping('2 x Wedge 2 x 4', [-80, 20, 0, 0, 80, 20], true, 0),
     new MAPS.Mapping('2 x Wedge 2 x 4', [-80, 20, 0, 0, 80, 20], false, 0),
+
+    new MAPS.Mapping('2 x 2 cylinder', MAPS.makeCyli(20, 12), false, 0),
+    new MAPS.Mapping('2 x 2 cylinder', MAPS.makeCyli(20, 12), true, 0),
+    new MAPS.Mapping('4 x 4 cylinder', MAPS.makeCyli(40, 16), false, 0),
+    new MAPS.Mapping('4 x 4 cylinder', MAPS.makeCyli(40, 16), true, 0),
 ];
