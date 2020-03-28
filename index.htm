@@ -107,6 +107,16 @@
         fill: #dcf0f8;
         stroke: #98aeb9;
       }
+      .download {
+        display: block;
+        margin: 1em;
+        text-align: center;
+        padding: 0.5em;
+        border: 1px solid black;
+        background-color: white;
+        color: black;
+        text-decoration: none;
+      }
     </style>
  </head>
  <body>
@@ -205,6 +215,7 @@ horizontal 0
    <span class="choice">
      <textarea id="ldr_result" rows="10"></textarea>
      <button onclick="copyToClipboard();">Copy LDraw File to Clipboard</button>
+     <a class="download" id="downloadContent"></a>
    </span>
   </div>
 
@@ -410,6 +421,11 @@ function fold(ldr) {
 
     let lDrawContent = ldrLoader.toLDR();
     $('#ldr_result').val(lDrawContent);
+
+    let e = document.getElementById('downloadContent');
+    e.href = 'data:text/x-ldraw;base64,' + btoa(lDrawContent);
+    e.setAttribute('download', mainModel.ID);
+    e.innerHTML = 'Click here to download ' + mainModel.ID;
 
     showInScene();
   }
