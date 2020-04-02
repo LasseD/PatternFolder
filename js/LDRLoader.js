@@ -1704,7 +1704,8 @@ LDR.Line2 = function(c, p1, p2, tmp) {
 }
 
 LDR.Line2.prototype.toLDR = function() {
-    return '2 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + '\r\n';
+    let c = this.c === -17 ? 24 : this.c
+    return '2 ' + c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + '\r\n';
 }
 
 LDR.Line3 = function(c, p1, p2, p3, cull, invert, tmp) {
@@ -1762,7 +1763,8 @@ LDR.Line5 = function(c, p1, p2, p3, p4, tmp) {
 }
 
 LDR.Line5.prototype.toLDR = function() {
-    return '5 ' + this.c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + ' ' + this.p4.toLDR() + '\r\n';
+    let c = this.c === -17 ? 24 : this.c
+    return '5 ' + c + ' ' + this.p1.toLDR() + ' ' + this.p2.toLDR() + ' ' + this.p3.toLDR() + ' ' + this.p4.toLDR() + '\r\n';
 }
 
 THREE.LDRPartType = function() {

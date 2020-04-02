@@ -343,6 +343,8 @@ function showInScene() {
   onWindowResize();
 }
 
+let idToUrl = id => ['../ldraw_parts/'+id.toLowerCase(), '../ldraw_unofficial'+id.toLowerCase()];
+
 THREE.LDRPartType.prototype.inline = function(loader) {
   if(this.inlined) {
     return; // Already inlined.
@@ -418,7 +420,7 @@ function fold(ldr) {
     showInScene();
   }
 
-  ldrLoader = new THREE.LDRLoader(onLoad, null, {onError:onError, onWarning:onWarning, onProgress:render, saveFileLines:false});
+  ldrLoader = new THREE.LDRLoader(onLoad, null, {idToUrl:idToUrl, onError:onError, onWarning:onWarning, onProgress:render, saveFileLines:false});
   ldrLoader.parse(ldr, 'main.dat');
   ldrLoader.reportProgress('main.dat');
 }

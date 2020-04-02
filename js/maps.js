@@ -183,6 +183,6 @@ MAPS.ALL = [
 
     new MAPS.Mapping('2 x 2 cylinder', MAPS.makeCyli(20, 12), false, 0),
     new MAPS.Mapping('2 x 2 cylinder', MAPS.makeCyli(20, 12), true, 0),
-    new MAPS.Mapping('4 x 4 cylinder', MAPS.makeCyli(40, 16), false, 0),
-    new MAPS.Mapping('4 x 4 cylinder', MAPS.makeCyli(40, 16), true, 0),
+    new MAPS.Mapping('4 x 4 cylinder', MAPS.makeCyli(40, 24), false, 0),
+    new MAPS.Mapping('4 x 4 cylinder', MAPS.makeCyli(40, 24), true, 0),
 ];
