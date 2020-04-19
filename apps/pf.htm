@@ -121,23 +121,23 @@
  </head>
  <body>
   <!-- Standard libraries -->
-  <script src="js/jquery.min.js"></script>
-  <script src="js/three.min.js"></script>
-  <script src="js/OrbitControls.js"></script>
+  <script src="../js/jquery.min.js"></script>
+  <script src="../js/three.min.js"></script>
+  <script src="../js/OrbitControls.js"></script>
 
   <!-- Libraries from buildinginstructions.js -->
-  <script src="js/colors.js"></script>
-  <script src="js/LDROptions.js"></script>
-  <script src="js/LDRShaders.js"></script>
-  <script src="js/LDRColorMaterials.js"></script>
-  <script src="js/LDRGeometries.js"></script>
-  <script src="js/LDRLoader.js"></script>
-  <script src="js/StudioTexmap.js"></script>
+  <script src="../js/colors.js"></script>
+  <script src="../js/LDROptions.js"></script>
+  <script src="../js/LDRShaders.js"></script>
+  <script src="../js/LDRColorMaterials.js"></script>
+  <script src="../js/LDRGeometries.js"></script>
+  <script src="../js/LDRLoader.js"></script>
+  <script src="../js/StudioTexmap.js"></script>
 
   <!-- Custom Pattern Folder libraries -->  
-  <script src="js/geometry.js"></script>
-  <script src="js/height_map.js"></script>
-  <script src="js/maps.js"></script>
+  <script src="../js/geometry.js"></script>
+  <script src="../js/height_map.js"></script>
+  <script src="../js/maps.js"></script>
 
   <h1>Pattern Folder - Fold LDraw parts</h1>
 
@@ -157,11 +157,40 @@
    </span>
    <span class="choice">
     <textarea id="file_content" onkeyup="fold(null)" rows="8">0 Insert LDraw file content here. This is an example with two triangles.
-0 3 2 -10 0 10  -10 0 -10  10 0 10
-0 3 4 -10 0 -10  10 0 -10  10 0 10
+0 FILE sticker_30342_3.dat
+0 Sticker 3 for 30342
+0 Name: sticker_30342_3.dat
+0 Author: Sticker Builder
+0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+0 BFC CERTIFY 
+0 PE_TEX_PATH -1
+0 PE_TEX_INFO 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
+2 24 -19.5 0 -8 -19.5 0 8
+2 24 -19.5 0 8 19.5 0 8
+2 24 19.5 0 8 19.5 0 -8
+2 24 19.5 0 -8 -19.5 0 -8
+2 24 -19.5 0.5 -8 -19.5 0.5 8
+2 24 -19.5 0.5 8 19.5 0.5 8
+2 24 19.5 0.5 8 19.5 0.5 -8
+2 24 19.5 0.5 -8 -19.5 0.5 -8
+2 24 -19.5 0 -8 -19.5 0.5 -8
+2 24 -19.5 0 8 -19.5 0.5 8
+2 24 19.5 0 8 19.5 0.5 8
+2 24 19.5 0 -8 19.5 0.5 -8
+3 16 19.5 0 -8 19.5 0 8 -19.5 0 8 0 0 1 0 1 1
+3 16 19.5 0 -8 -19.5 0 8 -19.5 0 -8 0 0 1 1 0 1
+4 16 -19.5 0 -8 -19.5 0 8 -19.5 0.5 8 -19.5 0.5 -8
+4 16 -19.5 0 8 19.5 0 8 19.5 0.5 8 -19.5 0.5 8
+4 16 19.5 0 8 19.5 0 -8 19.5 0.5 -8 19.5 0.5 8
+4 16 19.5 0 -8 -19.5 0 -8 -19.5 0.5 -8 19.5 0.5 -8
+4 16 -19.5 0.5 -8 -19.5 0.5 8 19.5 0.5 8 19.5 0.5 -8
 </textarea>
    </span>
 <!--
+0 3 2 -10 0 10  -10 0 -10  10 0 10
+0 3 4 -10 0 -10  10 0 -10  10 0 10
+
+
 0 FILE sample_file.ldr
 0 Name: sample_file.ldr
 0 BFC NOCERTIFY
@@ -203,9 +232,13 @@ horizontal 0
   <div class="section">
    <canvas id="preview"></canvas>
    <span class="choice">
-     <textarea id="ldr_result" rows="10"></textarea>
-     <button onclick="copyToClipboard();">Copy LDraw File to Clipboard</button>
-     <a class="download" id="downloadContent"></a>
+    <div id="outputtype">
+     <label for="studio">The file contains a texture. Check this box to export to Studio 2.0. Otherwise the generated file will be standard LDraw</label>
+     <input id="studio" name="studio" type="checkbox" onchange="fold(null);" />
+    </div>
+    <textarea id="ldr_result" rows="10"></textarea>
+    <button onclick="copyToClipboard();">Copy LDraw File to Clipboard</button>
+    <a class="download" id="downloadContent"></a>
    </span>
   </div>
 
@@ -301,6 +334,13 @@ function showInScene() {
   if(!ldrLoader.mainModel) {
     console.log('A valid model was not parsed. Nothing will be shown');
     return;
+  }
+
+  if(ldrLoader.texmapDataurls.length > 0) {
+    $('#outputtype').show();
+  }
+  else {
+    $('#outputtype').hide();
   }
 
   // Restructure ldrLoader:
@@ -409,7 +449,15 @@ function fold(ldr) {
     mapper = new LDR.LinearHeightMap($('#surface')[0].value);
     mapper.foldPart(mainModel);
 
-    let lDrawContent = ldrLoader.toLDR();
+    let lDrawContent;
+
+    if(document.getElementById('studio').checked) {
+      lDrawContent = mainModel.toStudioTexturedFile(ldrLoader);
+    }
+    else {
+      lDrawContent = ldrLoader.toLDR();
+    }
+
     $('#ldr_result').val(lDrawContent);
 
     let e = document.getElementById('downloadContent');
@@ -463,10 +511,10 @@ function copyToClipboard() {
 let controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.addEventListener('change', render);
 
-//$(document).ready(function() {
+$(document).ready(function() {
   setUpMaps();
   fold();
-//});
+});
   </script>
  </body>
 </html>
