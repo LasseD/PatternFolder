@@ -43,7 +43,7 @@ LDR.STUDIO.handlePart = function(loader, pt) {
             step.triangles.forEach(t => {t.p1.sub(misalignment); t.p2.sub(misalignment); t.p3.sub(misalignment);});
 
             let tmps = {};
-            step.triangles.forEach(t => tmps[t.tmp.idx] = t.tmp);
+            step.triangles.filter(t => t.tmp).forEach(t => tmps[t.tmp.idx] = t.tmp);
             for(let idx in tmps) {
                 if(!tmps.hasOwnProperty(idx)) {
                     continue;
